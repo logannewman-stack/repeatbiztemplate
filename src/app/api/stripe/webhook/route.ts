@@ -19,6 +19,11 @@ import { generateCode } from '@/lib/utils';
  * ============================================================================
  */
 
+// Stripe retries on non-2xx, so a slow response is recoverable — but a
+// timeout mid-write is not. 30s is well clear of what this handler needs.
+export const maxDuration = 30;
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature');
   const secret = process.env.STRIPE_WEBHOOK_SECRET;

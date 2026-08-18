@@ -1,22 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-
-  "//": [
-    "One cron entry, because Vercel's Hobby plan allows two and only at daily",
-    "granularity. /api/cron/run dispatches all seven automations, running",
-    "whichever are due — see src/lib/cron-jobs/index.ts.",
-    "",
-    "ON PRO: change the schedule below to '*/15 * * * *'. Nothing else needs",
-    "to change; the dispatcher already knows each job's cadence, and the",
-    "automations become properly responsive (reminders hourly, waitlist every",
-    "15 minutes) instead of once a day."
-  ],
   "crons": [
-    { "path": "/api/cron/run", "schedule": "0 9 * * *" }
-  ],
-
-  "functions": {
-    "src/app/api/cron/**/route.ts": { "maxDuration": 60 },
-    "src/app/api/stripe/webhook/route.ts": { "maxDuration": 30 }
-  }
+    { "path": "/api/cron/run", "schedule": "*/15 * * * *" }
+  ]
 }

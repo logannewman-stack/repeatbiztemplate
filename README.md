@@ -123,20 +123,16 @@ Two settings worth checking in Vercel after the first import:
 - **Node.js Version** → 20 or later. It follows `engines` in `package.json`,
   so this is usually already right.
 
-It deploys on a **Hobby** plan as shipped. Two things are worth knowing:
+Two things worth knowing:
 
 - **`NEXT_PUBLIC_*` is baked in at build time.** Adding Supabase keys in the
   Vercel dashboard after a deploy does nothing until you redeploy.
-- **Cron.** Hobby allows two cron jobs, daily only; this platform has seven,
-  three of them sub-daily. So `vercel.json` schedules a single dispatcher at
-  `/api/cron/run` that runs whichever jobs are due. On Hobby that means
-  everything runs once a day — fine for winback and reviews, genuinely
-  degraded for reminders and waitlist fill. On Pro, change the schedule to
-  `*/15 * * * *` and nothing else needs to change. Full detail, including how
-  to drive it from an external scheduler instead, is in
+- **Cron.** `vercel.json` schedules one dispatcher at `/api/cron/run` every 15
+  minutes, which runs whichever of the seven automations are due. That needs a
+  **Pro** plan. On **Hobby** — 2 cron jobs, daily only — change the schedule to
+  `0 9 * * *` and everything still runs, just once a day. `npm run preflight`
+  tells you which you are looking at. Full detail in
   [SETUP.md](./SETUP.md#cron-jobs-and-your-vercel-plan).
-
----
 
 ## The three fork points
 

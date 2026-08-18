@@ -361,9 +361,13 @@ So they do not run individually. `vercel.json` schedules **one** endpoint —
 job declares a minimum interval in `src/lib/cron-jobs/index.ts`, so the same
 code does the right thing at any trigger frequency.
 
-**On Hobby**, the shipped config works as-is. The dispatcher fires once daily
-at 09:00 UTC and every automation runs once a day. That is a real degradation
-and it is worth being honest about what it costs:
+**The shipped config runs every 15 minutes**, which needs a Pro plan. Reminders
+fire hourly, the waitlist fills within fifteen minutes, and the slower jobs run
+at their own cadence.
+
+**On Hobby**, change the schedule to `0 9 * * *` — one daily entry, which is
+inside the 2-job / daily-only limit. Everything still runs, once a day. That is
+a real degradation and it is worth being honest about what it costs:
 
 | Automation | Cost of running only daily |
 |---|---|
@@ -372,14 +376,8 @@ and it is worth being honest about what it costs:
 | Rebooking nudges | Fine. A day either side of "you're due" makes no difference. |
 | Winback, reviews, membership health, metrics | Fine. All are daily-or-slower by nature. |
 
-**On Pro**, change one line in `vercel.json`:
-
-```json
-{ "path": "/api/cron/run", "schedule": "*/15 * * * *" }
-```
-
-Nothing else changes. The dispatcher already knows each job's cadence, so
-reminders resume hourly and the waitlist fills within fifteen minutes.
+Nothing else changes when you switch either way. The dispatcher already knows
+each job's cadence; only the trigger frequency differs.
 
 **Prefer separate cron entries on Pro?** Every job is still individually
 reachable at `/api/cron/<key>`. Replace the single entry with one per job on
@@ -419,8 +417,10 @@ the automations run last night?" once the thing is live.
 
 ### Function timeouts
 
-Cron routes are set to `maxDuration = 60`, which is the Hobby ceiling and well
-within Pro's. If a client list grows large enough for `refresh-metrics` to
+Each route sets its own `maxDuration` — 60s for cron, 30s for the Stripe
+webhook. That lives in the route files rather than `vercel.json`, which is kept
+minimal because Vercel rejects any unrecognised property there and a `functions`
+glob that matches nothing is a deploy error in itself. If a client list grows large enough for `refresh-metrics` to
 time out, run it against a smaller page size or move it to a Pro plan with a
 longer limit — it pages through clients rather than loading them all, so it
 degrades gracefully rather than falling over.
