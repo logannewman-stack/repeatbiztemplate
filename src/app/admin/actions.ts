@@ -838,3 +838,146 @@ export async function completeOnboarding(): Promise<ActionResult> {
     return actionError(err);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Policies
+// ---------------------------------------------------------------------------
+
+const policySchema = z.object({
+  freeCancellationHours: z.coerce.number().int().min(0).max(168),
+  feeTiers: z.array(
+    z.object({
+      withinHours: z.coerce.number().int().min(1).max(168),
+      feePercent: z.coerce.number().int().min(0).max(100),
+      label: z.string().max(80),
+    })
+  ).max(6),
+  noShowFeePercent: z.coerce.number().int().min(0).max(100),
+  rescheduleFirst: z.boolean(),
+  freeReschedulesPerAppointment: z.coerce.number().int().min(0).max(5),
+  prepayAfterNoShows: z.coerce.number().int().min(0).max(10),
+  requireCardAfterLateCancels: z.coerce.number().int().min(0).max(10),
+  depositsEnabled: z.boolean(),
+  depositPercent: z.coerce.number().int().min(1).max(100),
+  depositAboveCents: z.coerce.number().int().min(0),
+  depositAboveMinutes: z.coerce.number().int().min(0).max(480),
+  depositNewClients: z.boolean(),
+  depositWaiveMembers: z.boolean(),
+  reminderHours: z.array(z.coerce.number().int().min(1).max(720)).max(6),
+  quietStart: z.string().regex(/^\d{2}:\d{2}$/),
+  quietEnd: z.string().regex(/^\d{2}:\d{2}$/),
+  nudgeDayOffsets: z.array(z.coerce.number().int().min(0).max(365)).max(6),
+  lapseMultiplier: z.coerce.number().min(1).max(6),
+  giveUpAfterDays: z.coerce.number().int().min(30).max(1095),
+  minLeadTimeMinutes: z.coerce.number().int().min(0).max(1440),
+  maxAdvanceBookingDays: z.coerce.number().int().min(1).max(730),
+  slotIntervalMinutes: z.coerce.number().int().min(5).max(60),
+  allowProcessingTimeOverlap: z.boolean(),
+  allowPause: z.boolean(),
+  maxPauseMonths: z.coerce.number().int().min(1).max(12),
+  creditRolloverPeriods: z.coerce.number().int().min(0).max(12),
+  publicReviewUrl: z.string().max(500),
+});
+
+/**
+ * Write policy overrides to `businesses.policy`.
+ *
+ * Only the fields the editor exposes are written, and they are stored in the
+ * same nested shape as `src/config/rules.ts` so `resolveRules` can deep-merge
+ * them over the compiled defaults. Anything not set here keeps falling through
+ * to the config, which is what makes partial overrides safe.
+ */
+export async function savePolicy(input: unknown): Promise<ActionResult> {
+  try {
+    const ctx = await requireStaff('manager');
+    if (ctx.demo) return { ok: false, error: DEMO_ERROR };
+
+    const parsed = policySchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.errors[0]?.message ?? 'Invalid policy.' };
+    }
+    const p = parsed.data;
+
+    if (p.quietEnd === p.quietStart) {
+      return { ok: false, error: 'Quiet hours cannot start and end at the same time.' };
+    }
+
+    const supabase = createAdminClient();
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('policy')
+      .eq('id', ctx.businessId)
+      .single();
+
+    const existing =
+      business?.policy && typeof business.policy === 'object' && !Array.isArray(business.policy)
+        ? (business.policy as Record<string, unknown>)
+        : {};
+
+    const policy = {
+      ...existing,
+      booking: {
+        minLeadTimeMinutes: p.minLeadTimeMinutes,
+        maxAdvanceBookingDays: p.maxAdvanceBookingDays,
+        slotIntervalMinutes: p.slotIntervalMinutes,
+        allowProcessingTimeOverlap: p.allowProcessingTimeOverlap,
+      },
+      cancellation: {
+        freeCancellationHours: p.freeCancellationHours,
+        // Sorted shortest-notice first so the harshest matching tier wins.
+        feeTiers: [...p.feeTiers].sort((a, b) => a.withinHours - b.withinHours),
+        noShowFeePercent: p.noShowFeePercent,
+        rescheduleFirst: p.rescheduleFirst,
+        freeReschedulesPerAppointment: p.freeReschedulesPerAppointment,
+        prepayAfterNoShows: p.prepayAfterNoShows,
+        requireCardAfterLateCancels: p.requireCardAfterLateCancels,
+      },
+      deposits: {
+        enabled: p.depositsEnabled,
+        defaultPercent: p.depositPercent,
+        requireAboveCents: p.depositAboveCents,
+        requireAboveMinutes: p.depositAboveMinutes,
+        requireForNewClients: p.depositNewClients,
+        waiveForMembers: p.depositWaiveMembers,
+      },
+      reminders: {
+        // Descending, because the cron walks them in order.
+        scheduleHoursBefore: [...p.reminderHours].sort((a, b) => b - a),
+        quietHours: { start: p.quietStart, end: p.quietEnd },
+      },
+      rebooking: {
+        nudgeDayOffsets: [...p.nudgeDayOffsets].sort((a, b) => a - b),
+      },
+      lapse: {
+        lapseMultiplier: p.lapseMultiplier,
+        giveUpAfterDays: p.giveUpAfterDays,
+      },
+      memberships: {
+        allowPause: p.allowPause,
+        maxPauseMonths: p.maxPauseMonths,
+        creditRolloverPeriods: p.creditRolloverPeriods,
+      },
+      reviews: {
+        publicReviewUrl: p.publicReviewUrl,
+      },
+    };
+
+    const { error } = await supabase
+      .from('businesses')
+      .update({ policy })
+      .eq('id', ctx.businessId);
+
+    if (error) throw error;
+
+    // The public policies page is generated from these, so it must revalidate
+    // alongside them or the two will disagree.
+    revalidatePath('/policies');
+    revalidatePath('/admin/settings/policies');
+    revalidatePath('/book');
+    revalidatePath('/');
+
+    return { ok: true, message: 'Policies saved and live.' };
+  } catch (err) {
+    return actionError(err);
+  }
+}
