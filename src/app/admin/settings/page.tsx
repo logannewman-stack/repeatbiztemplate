@@ -52,6 +52,29 @@ export default function SettingsPage() {
         </p>
       </header>
 
+      {/* The two screens that actually change things live elsewhere; this page
+          is a status report. Point at them rather than duplicating them. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <a href="/admin/setup" className="block">
+          <Card className="h-full p-4 transition-colors hover:border-[var(--color-brand)]">
+            <p className="font-medium">Setup</p>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">
+              Business name, logo, colors, service menu, team, and opening hours.
+              Changes go live immediately.
+            </p>
+          </Card>
+        </a>
+        <a href="/admin/settings/policies" className="block">
+          <Card className="h-full p-4 transition-colors hover:border-[var(--color-brand)]">
+            <p className="font-medium">Policies</p>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">
+              Cancellation windows, deposits, reminders, rebooking cadence, and
+              membership terms — without a redeploy.
+            </p>
+          </Card>
+        </a>
+      </div>
+
       <Card>
         <CardHeader
           title="Integrations"
@@ -171,9 +194,11 @@ export default function SettingsPage() {
         <CardBody>
           <ul className="space-y-2 text-sm text-[var(--color-muted)]">
             <li>
-              <strong className="text-[var(--color-fg)]">Brand and copy</strong> —{' '}
-              <code>src/config/brand.ts</code>, the logo and icons in{' '}
-              <code>public/brand/</code>, and the hero image.
+              <strong className="text-[var(--color-fg)]">Brand and copy</strong> —
+              upload the real logo, icon, and hero photo in{' '}
+              <a href="/admin/setup" className="underline">Setup</a>. The
+              placeholders in <code>src/config/brand.ts</code> are only the
+              fallback for a fresh fork.
             </li>
             <li>
               <strong className="text-[var(--color-fg)]">Legal pages</strong> — the
@@ -182,9 +207,10 @@ export default function SettingsPage() {
               particularly for medical or med-spa builds.
             </li>
             <li>
-              <strong className="text-[var(--color-fg)]">Review link</strong> —{' '}
-              <code>rules.reviews.publicReviewUrl</code> points at a placeholder
-              domain. Set it to the client&apos;s real Google or Yelp listing.
+              <strong className="text-[var(--color-fg)]">Review link</strong> —
+              still a placeholder domain, so happy clients are being sent
+              nowhere. Set it in{' '}
+              <a href="/admin/settings/policies" className="underline">Policies</a>.
             </li>
             <li>
               <strong className="text-[var(--color-fg)]">Message templates</strong> —

@@ -18,9 +18,10 @@
  */
 
 import * as React from 'react';
-import { Button, Card, Badge, Input, Field, Alert, Select } from '@/components/ui';
+import { Button, Card, Badge, Input, Field, Alert } from '@/components/ui';
 import { formatMoney, formatDuration, cn } from '@/lib/utils';
 import type { DemoService, DemoAddon, DemoStaff } from '@/lib/demo';
+import { DatePicker } from '@/components/booking/DatePicker';
 
 type Step = 'service' | 'provider' | 'time' | 'extras' | 'details' | 'done';
 
@@ -66,6 +67,7 @@ export function BookingFlow(props: BookingFlowProps) {
     props.initialStaffId ?? null
   );
   const [slot, setSlot] = React.useState<DaySlots['slots'][number] | null>(null);
+  const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
   const [addonIds, setAddonIds] = React.useState<string[]>([]);
   const [days, setDays] = React.useState<DaySlots[]>([]);
   const [loadingSlots, setLoadingSlots] = React.useState(false);
@@ -95,6 +97,7 @@ export function BookingFlow(props: BookingFlowProps) {
 
     let cancelled = false;
     setLoadingSlots(true);
+    setSelectedDate(null);
 
     const fromDate = new Date().toISOString().slice(0, 10);
     const params = new URLSearchParams({
@@ -127,6 +130,20 @@ export function BookingFlow(props: BookingFlowProps) {
   const duration =
     (service?.duration_min ?? 0) +
     selectedAddons.reduce((sum, a) => sum + a.duration_min, 0);
+
+  const openDays = React.useMemo(
+    () => days.filter((d) => d.slots.length > 0),
+    [days]
+  );
+
+  // Default to the first day with anything open, so the grid is never empty
+  // on arrival — an empty time list reads as "fully booked".
+  const activeDate = selectedDate ?? openDays[0]?.date ?? null;
+
+  const activeSlots = React.useMemo(() => {
+    const day = days.find((d) => d.date === activeDate);
+    return day ? dedupeSlots(day.slots) : [];
+  }, [days, activeDate]);
 
   const depositCents = React.useMemo(() => {
     if (!service || service.deposit_mode === 'none') return 0;
@@ -291,47 +308,70 @@ export function BookingFlow(props: BookingFlowProps) {
           </p>
 
           {loadingSlots ? (
-            <p className="mt-8 text-center text-sm text-[var(--color-muted)]">
-              Loading available times…
-            </p>
+            <div className="mt-6 space-y-3" aria-busy>
+              <div className="flex gap-2">
+                {Array.from({ length: 7 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="h-16 w-16 shrink-0 animate-pulse rounded-[var(--radius-card)] bg-[var(--color-surface-2)]"
+                  />
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                {Array.from({ length: 8 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="h-11 animate-pulse rounded-[var(--radius-card)] bg-[var(--color-surface-2)]"
+                  />
+                ))}
+              </div>
+            </div>
+          ) : openDays.length === 0 ? (
+            <Alert tone="neutral" className="mt-4">
+              No times available in the next three weeks. Try another{' '}
+              {props.providerNoun}, or give us a call and we will find something.
+            </Alert>
           ) : (
             <div className="mt-4 space-y-5">
-              {days.filter((d) => d.slots.length > 0).length === 0 && (
-                <Alert tone="neutral">
-                  No times available in the next three weeks. Try another{' '}
-                  {props.providerNoun}, or call us and we will find something.
-                </Alert>
-              )}
+              <DatePicker
+                days={days.map((d) => ({
+                  date: d.date,
+                  slotCount: dedupeSlots(d.slots).length,
+                }))}
+                selected={activeDate}
+                onSelect={setSelectedDate}
+                timezone={props.timezone}
+              />
 
-              {days.filter((d) => d.slots.length > 0).map((day) => (
-                <div key={day.date}>
-                  <div className="flex items-baseline justify-between">
-                    <h3 className="text-sm font-semibold">
-                      {formatDayHeading(day.date, props.timezone)}
-                    </h3>
-                    {day.slots.length <= 3 && (
-                      <Badge tone="warning">
-                        {day.slots.length} left
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {dedupeSlots(day.slots).map((s) => (
+              {activeSlots.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-[var(--color-muted)]">
+                    {activeSlots.length} time{activeSlots.length === 1 ? '' : 's'} available
+                  </h3>
+
+                  <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {activeSlots.map((s) => (
                       <button
                         key={`${s.startsAt}-${s.staffId}`}
                         onClick={() => { setSlot(s); setStep('extras'); }}
                         className={cn(
-                          'rounded-[var(--radius-card)] border px-3 py-2.5 text-sm tabular-nums transition-colors',
-                          'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-brand)]',
-                          slot?.startsAt === s.startsAt && 'border-[var(--color-brand)] bg-[var(--color-brand-soft)]'
+                          'rounded-[var(--radius-card)] border px-2 py-3 text-sm tabular-nums transition-colors',
+                          slot?.startsAt === s.startsAt
+                            ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)] font-medium'
+                            : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-brand)]'
                         )}
                       >
                         {formatTime(s.startsAt, props.timezone)}
+                        {!staffId && (
+                          <span className="block truncate text-[11px] font-normal opacity-60">
+                            {s.staffName.split(' ')[0]}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
           <BackButton onClick={() => setStep('provider')} />
