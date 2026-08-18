@@ -31,10 +31,13 @@ export default async function BookPage({
   let timezone = demoLocation().timezone;
   let currency = 'USD';
   let taxRateBps = 700;
+  let loadFailed = false;
 
   if (!demoMode) {
-    const business = await loadBusiness();
-    if (business) {
+    try {
+      const business = await loadBusiness();
+      if (!business) throw new Error('No business row found.');
+
       const catalog = await loadCatalog(business.id);
       timezone = business.timezone;
       currency = business.currency;
@@ -99,7 +102,35 @@ export default async function BookPage({
         rollover_periods: p.rollover_periods,
         perks: Array.isArray(p.perks) ? (p.perks as string[]) : [],
       }));
+    } catch (err) {
+      // The catalog is unreachable — bad credentials, a paused project, a
+      // network blip. Never fall back to the demo catalog here: showing
+      // placeholder services and prices to a real customer is worse than
+      // showing nothing. Send them to the phone instead.
+      console.error('[book] Could not load the live catalog:', err);
+      loadFailed = true;
     }
+  }
+
+  if (loadFailed) {
+    return (
+      <>
+        <SiteHeader />
+        <main id="main" className="mx-auto max-w-md px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold">Online booking is unavailable</h1>
+          <p className="mt-2 text-[var(--color-muted)]">
+            We&apos;re having trouble loading our calendar. Give us a call and
+            we&apos;ll get you booked in.
+          </p>
+          <a
+            href={`tel:${brand.contact.phone.replace(/\D/g, '')}`}
+            className="mt-6 inline-block text-lg font-semibold text-[var(--color-brand)] underline underline-offset-4"
+          >
+            {brand.contact.phone}
+          </a>
+        </main>
+      </>
+    );
   }
 
   return (

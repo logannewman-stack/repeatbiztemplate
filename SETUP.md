@@ -358,6 +358,20 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://yourdomain.com/api/cron/ref
 **Everything says "demo mode"** — `NEXT_PUBLIC_SUPABASE_URL` still contains
 `REPLACE_ME`, or the dev server wasn't restarted after editing `.env.local`.
 
+**Demo mode and live mode disagree after a deploy** — `NEXT_PUBLIC_*` variables
+are **inlined at build time**, not read at runtime. Whether a build runs in demo
+mode is decided when `next build` runs, so adding Supabase credentials in Vercel
+after a deploy changes nothing until you redeploy. The same applies in reverse:
+a build made with credentials present stays in live mode even if you delete the
+env file afterwards. Whenever you switch, rebuild.
+
+**The booking page says "online booking is unavailable"** — the app is in live
+mode but cannot reach the catalog: wrong keys, a paused Supabase project, or
+migrations never run. It deliberately shows a phone number rather than falling
+back to the demo catalog, because showing placeholder services and prices to a
+real customer is worse than showing nothing. The underlying error is logged
+server-side.
+
 **Queries return nothing but the data exists** — RLS. Anonymous users only see
 the public catalog. Server-side reads that need to bypass it must use
 `createAdminClient()`, never the browser or SSR client.
