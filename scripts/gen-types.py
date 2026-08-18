@@ -23,6 +23,9 @@ PG_TO_TS = {
     'timestamp with time zone': 'string', 'timestamp without time zone': 'string',
     'date': 'string', 'time without time zone': 'string', 'time with time zone': 'string',
     'jsonb': 'Json', 'json': 'Json',
+    # PostgREST serializes ranges to their text form, e.g. ["2026-09-01 10:00+00",...)
+    'tstzrange': 'string', 'tsrange': 'string', 'daterange': 'string',
+    'int4range': 'string', 'numrange': 'string',
     'ARRAY': 'unknown[]',
 }
 
@@ -104,6 +107,7 @@ def main():
             nullable = '' if notnull else ' | null'
             out.append(f'          {col}?: {t}{nullable};')
         out.append('        };')
+        out.append('        Relationships: [];')
         out.append('      };')
     out.append('    };')
 
@@ -117,7 +121,37 @@ def main():
             t = ts_type(typ, enums)
             out.append(f'          {col}: {t} | null;')
         out.append('        };')
+        out.append('        Relationships: [];')
         out.append('      };')
+    out.append('    };')
+
+    # supabase-js requires Functions and CompositeTypes on every schema, even
+    # when empty — omitting them collapses every query result to `never`.
+    out.append('    Functions: {')
+    out.append('      compute_no_show_risk: {')
+    out.append('        Args: { p_no_shows: number; p_late_cancels: number; p_completed: number; p_days_since_last_visit: number };')
+    out.append('        Returns: number;')
+    out.append('      };')
+    out.append('      compute_churn_risk: {')
+    out.append('        Args: { p_days_since_last_visit: number; p_expected_interval: number; p_has_future_booking: boolean; p_completed: number; p_is_member: boolean };')
+    out.append('        Returns: number;')
+    out.append('      };')
+    out.append('      refresh_client_metrics: {')
+    out.append('        Args: { p_client_id: string };')
+    out.append('        Returns: undefined;')
+    out.append('      };')
+    out.append('      grant_membership_credits: {')
+    out.append("        Args: { p_membership_id: string; p_amount: number; p_reason?: Database['public']['Enums']['ledger_reason'] };")
+    out.append('        Returns: number;')
+    out.append('      };')
+    out.append('      redeem_membership_credit: {')
+    out.append('        Args: { p_membership_id: string; p_appointment_id: string };')
+    out.append('        Returns: boolean;')
+    out.append('      };')
+    out.append('      generate_referral_code: {')
+    out.append('        Args: Record<string, never>;')
+    out.append('        Returns: string;')
+    out.append('      };')
     out.append('    };')
 
     out.append('    Enums: {')
@@ -125,6 +159,7 @@ def main():
         union = ' | '.join(f"'{l}'" for l in labels)
         out.append(f'      {name}: {union};')
     out.append('    };')
+    out.append('    CompositeTypes: Record<string, never>;')
     out.append('  };')
     out.append('}')
     out.append('')

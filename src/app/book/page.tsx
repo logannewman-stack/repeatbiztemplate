@@ -1,0 +1,128 @@
+import { Suspense } from 'react';
+import type { Metadata } from 'next';
+import { brand } from '@/config/brand';
+import { vertical } from '@/config/verticals';
+import { rules } from '@/config/rules';
+import { SiteHeader } from '@/components/layout/SiteHeader';
+import { BookingFlow } from '@/components/booking/BookingFlow';
+import {
+  demoServices, demoStaff, demoPlans, demoLocation, isSupabaseConfigured,
+} from '@/lib/demo';
+import { loadBusiness, loadCatalog } from '@/lib/booking/queries';
+
+export const metadata: Metadata = {
+  title: 'Book an appointment',
+  description: `Book online at ${brand.name}.`,
+};
+
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string; staff?: string }>;
+}) {
+  const params = await searchParams;
+  const demoMode = !isSupabaseConfigured();
+
+  // Demo mode renders the vertical preset so a fresh clone is clickable
+  // before any infrastructure exists. See src/lib/demo.ts.
+  let services = demoServices();
+  let staff = demoStaff();
+  let plans = demoPlans();
+  let timezone = demoLocation().timezone;
+  let currency = 'USD';
+  let taxRateBps = 700;
+
+  if (!demoMode) {
+    const business = await loadBusiness();
+    if (business) {
+      const catalog = await loadCatalog(business.id);
+      timezone = business.timezone;
+      currency = business.currency;
+      taxRateBps = business.tax_rate_bps;
+
+      services = catalog.services.map((s) => ({
+        id: s.id,
+        name: s.name,
+        slug: s.slug,
+        description: s.description,
+        category: '',
+        duration_min: s.duration_min,
+        processing_time_min: s.processing_time_min,
+        finish_time_min: s.finish_time_min,
+        price_cents: s.price_cents,
+        member_price_cents: s.member_price_cents,
+        rebook_interval_days: s.rebook_interval_days,
+        deposit_mode: s.deposit_mode,
+        deposit_percent: s.deposit_percent,
+        deposit_flat_cents: s.deposit_flat_cents,
+        taxable: s.taxable,
+        addons: (
+          (s as unknown as {
+            service_addons?: Array<{
+              is_recommended: boolean;
+              addons: {
+                id: string; name: string; duration_min: number;
+                price_cents: number; member_price_cents: number | null; taxable: boolean;
+              } | null;
+            }>;
+          }).service_addons ?? []
+        )
+          .filter((sa) => sa.addons)
+          .map((sa) => ({
+            id: sa.addons!.id,
+            name: sa.addons!.name,
+            duration_min: sa.addons!.duration_min,
+            price_cents: sa.addons!.price_cents,
+            member_price_cents: sa.addons!.member_price_cents,
+            taxable: sa.addons!.taxable,
+            is_recommended: sa.is_recommended,
+          })),
+      }));
+
+      staff = catalog.staff.map((s) => ({
+        id: s.id,
+        display_name: s.display_name,
+        title: s.title ?? '',
+        bio: s.bio ?? '',
+        price_multiplier: Number(s.price_multiplier),
+        color: s.color ?? '#4F7CAC',
+      }));
+
+      plans = catalog.plans.map((p) => ({
+        id: p.id, name: p.name, slug: p.slug, pitch: p.pitch ?? '',
+        description: p.description ?? '', price_cents: p.price_cents,
+        billing_interval: p.billing_interval as 'month' | 'year',
+        included_credits: p.included_credits, discount_pct: p.discount_pct,
+        retail_discount_pct: p.retail_discount_pct,
+        waives_deposits: p.waives_deposits,
+        priority_booking_days: p.priority_booking_days,
+        rollover_periods: p.rollover_periods,
+        perks: Array.isArray(p.perks) ? (p.perks as string[]) : [],
+      }));
+    }
+  }
+
+  return (
+    <>
+      <SiteHeader />
+      <main id="main" className="py-8">
+        <Suspense fallback={<p className="px-4 text-center text-sm">Loading…</p>}>
+          <BookingFlow
+            services={services}
+            staff={staff}
+            plans={plans}
+            timezone={timezone}
+            currency={currency}
+            taxRateBps={taxRateBps}
+            freeCancellationHours={rules.cancellation.freeCancellationHours}
+            initialServiceId={params.service ?? null}
+            initialStaffId={params.staff ?? null}
+            demoMode={demoMode}
+            visitNoun={vertical.visitNoun}
+            providerNoun={vertical.providerNoun}
+          />
+        </Suspense>
+      </main>
+    </>
+  );
+}

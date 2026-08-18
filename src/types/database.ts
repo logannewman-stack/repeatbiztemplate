@@ -58,6 +58,7 @@ export interface Database {
           expires_at?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       addons: {
         Row: {
@@ -108,6 +109,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       appointment_addons: {
         Row: {
@@ -140,6 +142,7 @@ export interface Database {
           from_upsell?: boolean;
           created_at?: string;
         };
+        Relationships: [];
       };
       appointment_busy_blocks: {
         Row: {
@@ -148,7 +151,7 @@ export interface Database {
           business_id: string;
           staff_id: string | null;
           room_id: string | null;
-          block: unknown;
+          block: string;
         };
         Insert: {
           id?: string;
@@ -156,7 +159,7 @@ export interface Database {
           business_id: string;
           staff_id?: string | null;
           room_id?: string | null;
-          block: unknown;
+          block: string;
         };
         Update: {
           id?: string;
@@ -164,8 +167,9 @@ export interface Database {
           business_id?: string;
           staff_id?: string | null;
           room_id?: string | null;
-          block?: unknown;
+          block?: string;
         };
+        Relationships: [];
       };
       appointments: {
         Row: {
@@ -309,6 +313,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       audit_log: {
         Row: {
@@ -353,6 +358,7 @@ export interface Database {
           user_agent?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       blocked_times: {
         Row: {
@@ -382,6 +388,7 @@ export interface Database {
           reason?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       businesses: {
         Row: {
@@ -441,6 +448,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       campaign_sends: {
         Row: {
@@ -527,6 +535,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       campaigns: {
         Row: {
@@ -592,6 +601,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       client_files: {
         Row: {
@@ -639,6 +649,7 @@ export interface Database {
           uploaded_by?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       client_metrics: {
         Row: {
@@ -737,6 +748,7 @@ export interface Database {
           lifecycle?: Database["public"]["Enums"]["client_lifecycle"];
           computed_at?: string;
         };
+        Relationships: [];
       };
       client_notes: {
         Row: {
@@ -781,6 +793,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       client_packages: {
         Row: {
@@ -828,6 +841,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       clients: {
         Row: {
@@ -917,6 +931,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       form_submissions: {
         Row: {
@@ -955,6 +970,7 @@ export interface Database {
           ip_address?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       forms: {
         Row: {
@@ -993,6 +1009,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       gift_card_transactions: {
         Row: {
@@ -1019,6 +1036,7 @@ export interface Database {
           balance_after?: number;
           created_at?: string;
         };
+        Relationships: [];
       };
       gift_cards: {
         Row: {
@@ -1075,6 +1093,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       locations: {
         Row: {
@@ -1149,6 +1168,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       loyalty_transactions: {
         Row: {
@@ -1190,6 +1210,7 @@ export interface Database {
           note?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       membership_credit_ledger: {
         Row: {
@@ -1228,6 +1249,7 @@ export interface Database {
           note?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       membership_plans: {
         Row: {
@@ -1323,6 +1345,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       memberships: {
         Row: {
@@ -1412,6 +1435,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       message_templates: {
         Row: {
@@ -1453,6 +1477,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       offers: {
         Row: {
@@ -1515,6 +1540,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       order_items: {
         Row: {
@@ -1562,6 +1588,7 @@ export interface Database {
           staff_id?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       orders: {
         Row: {
@@ -1642,6 +1669,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       packages: {
         Row: {
@@ -1698,6 +1726,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       payments: {
         Row: {
@@ -1766,6 +1795,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       products: {
         Row: {
@@ -1828,6 +1858,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       referrals: {
         Row: {
@@ -1881,6 +1912,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       reviews: {
         Row: {
@@ -1934,6 +1966,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       rooms: {
         Row: {
@@ -1972,6 +2005,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       service_addons: {
         Row: {
@@ -1992,6 +2026,7 @@ export interface Database {
           is_recommended?: boolean;
           sort_order?: number;
         };
+        Relationships: [];
       };
       service_categories: {
         Row: {
@@ -2024,6 +2059,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       service_products: {
         Row: {
@@ -2041,6 +2077,7 @@ export interface Database {
           product_id?: string;
           sort_order?: number;
         };
+        Relationships: [];
       };
       service_staff: {
         Row: {
@@ -2061,6 +2098,7 @@ export interface Database {
           price_override_cents?: number | null;
           duration_override_min?: number | null;
         };
+        Relationships: [];
       };
       services: {
         Row: {
@@ -2174,6 +2212,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       staff: {
         Row: {
@@ -2245,6 +2284,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       staff_locations: {
         Row: {
@@ -2259,6 +2299,7 @@ export interface Database {
           staff_id?: string;
           location_id?: string;
         };
+        Relationships: [];
       };
       staff_schedules: {
         Row: {
@@ -2297,6 +2338,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       staff_time_off: {
         Row: {
@@ -2332,6 +2374,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       waitlist_entries: {
         Row: {
@@ -2403,6 +2446,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       webhook_events: {
         Row: {
@@ -2432,6 +2476,7 @@ export interface Database {
           error?: string | null;
           received_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: {
@@ -2450,6 +2495,7 @@ export interface Database {
           lost_revenue_cents: number | null;
           recovered_fee_cents: number | null;
         };
+        Relationships: [];
       };
       v_average_ticket: {
         Row: {
@@ -2464,6 +2510,7 @@ export interface Database {
           revenue_cents: number | null;
           tips_cents: number | null;
         };
+        Relationships: [];
       };
       v_campaign_performance: {
         Row: {
@@ -2482,6 +2529,7 @@ export interface Database {
           conversion_rate: number | null;
           revenue_cents: number | null;
         };
+        Relationships: [];
       };
       v_clients_due: {
         Row: {
@@ -2506,6 +2554,7 @@ export interface Database {
           days_overdue: number | null;
           priority_score: number | null;
         };
+        Relationships: [];
       };
       v_membership_movement: {
         Row: {
@@ -2515,6 +2564,7 @@ export interface Database {
           churned_members: number | null;
           active_members: number | null;
         };
+        Relationships: [];
       };
       v_mrr: {
         Row: {
@@ -2527,6 +2577,7 @@ export interface Database {
           paused_mrr_cents: number | null;
           at_risk_mrr_cents: number | null;
         };
+        Relationships: [];
       };
       v_rebooking_rate: {
         Row: {
@@ -2538,6 +2589,7 @@ export interface Database {
           rebook_prompt_rate: number | null;
           rebook_rate: number | null;
         };
+        Relationships: [];
       };
       v_retention_cohorts: {
         Row: {
@@ -2548,6 +2600,7 @@ export interface Database {
           retained_clients: number | null;
           cohort_size: number | null;
         };
+        Relationships: [];
       };
       v_staff_performance: {
         Row: {
@@ -2565,6 +2618,7 @@ export interface Database {
           addon_attach_rate: number | null;
           retail_attach_rate: number | null;
         };
+        Relationships: [];
       };
       v_utilization: {
         Row: {
@@ -2576,6 +2630,33 @@ export interface Database {
           utilization_pct: number | null;
           open_minutes: number | null;
         };
+        Relationships: [];
+      };
+    };
+    Functions: {
+      compute_no_show_risk: {
+        Args: { p_no_shows: number; p_late_cancels: number; p_completed: number; p_days_since_last_visit: number };
+        Returns: number;
+      };
+      compute_churn_risk: {
+        Args: { p_days_since_last_visit: number; p_expected_interval: number; p_has_future_booking: boolean; p_completed: number; p_is_member: boolean };
+        Returns: number;
+      };
+      refresh_client_metrics: {
+        Args: { p_client_id: string };
+        Returns: undefined;
+      };
+      grant_membership_credits: {
+        Args: { p_membership_id: string; p_amount: number; p_reason?: Database['public']['Enums']['ledger_reason'] };
+        Returns: number;
+      };
+      redeem_membership_credit: {
+        Args: { p_membership_id: string; p_appointment_id: string };
+        Returns: boolean;
+      };
+      generate_referral_code: {
+        Args: Record<string, never>;
+        Returns: string;
       };
     };
     Enums: {
@@ -2595,6 +2676,7 @@ export interface Database {
       staff_role: 'owner' | 'manager' | 'front_desk' | 'provider' | 'read_only';
       waitlist_status: 'waiting' | 'offered' | 'claimed' | 'expired' | 'cancelled' | 'fulfilled';
     };
+    CompositeTypes: Record<string, never>;
   };
 }
 
