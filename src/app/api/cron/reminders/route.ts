@@ -1,60 +1,36 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { loadBusiness } from '@/lib/booking/queries';
-import { resolveRules } from '@/lib/rules';
-import { dispatch } from '@/lib/retention/dispatch';
-import { authorizeCron, summarize } from '@/lib/cron';
+import { authorizeCron } from '@/lib/cron';
+import { isSupabaseConfigured } from '@/lib/demo';
+import { run } from '@/lib/cron-jobs/reminders';
 
 /**
- * Appointment reminders. Runs hourly.
+ * Appointment reminders.
  *
- * For each configured lead time, find appointments falling in that hour and
- * send. The dedupe key is (campaign, client, appointment), so re-running the
- * job — or a Vercel retry — cannot double-message anyone.
+ * Thin wrapper so this job stays individually reachable — for a manual run, an
+ * external scheduler, or a Vercel plan that can afford separate cron entries.
+ * On the default deployment `/api/cron/run` drives it instead, because Hobby
+ * allows only two cron jobs and this platform has seven.
  */
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const denied = authorizeCron(request);
   if (denied) return denied;
 
-  const startedAt = Date.now();
-  const business = await loadBusiness();
-  if (!business) {
-    return NextResponse.json({ error: 'Business not configured.' }, { status: 500 });
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(
+      { error: 'Supabase is not configured, so there is nothing to run.' },
+      { status: 503 }
+    );
   }
 
-  const rules = resolveRules(business.policy);
-  const supabase = createAdminClient();
-  const results: Array<{ status: string }> = [];
-
-  for (const hoursBefore of rules.reminders.scheduleHoursBefore) {
-    const windowStart = new Date(Date.now() + hoursBefore * 3_600_000);
-    const windowEnd = new Date(windowStart.getTime() + 3_600_000);
-
-    const { data: appointments } = await supabase
-      .from('appointments')
-      .select('id, client_id')
-      .eq('business_id', business.id)
-      .in('status', ['booked', 'confirmed'])
-      .gte('starts_at', windowStart.toISOString())
-      .lt('starts_at', windowEnd.toISOString());
-
-    const campaignKey =
-      hoursBefore >= 48 ? 'reminder_72h'
-      : hoursBefore >= 12 ? 'reminder_24h'
-      : 'reminder_3h';
-
-    for (const appointment of appointments ?? []) {
-      const result = await dispatch({
-        businessId: business.id,
-        campaignKey,
-        clientId: appointment.client_id,
-        occurrence: appointment.id,
-        appointmentId: appointment.id,
-        transactional: true,
-      });
-      results.push(result);
-    }
+  try {
+    return NextResponse.json(await run());
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Job failed.' },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json(summarize('reminders', startedAt, results));
 }

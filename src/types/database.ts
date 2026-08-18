@@ -933,6 +933,42 @@ export interface Database {
         };
         Relationships: [];
       };
+      cron_runs: {
+        Row: {
+          key: string;
+          last_run_at: string | null;
+          last_status: string | null;
+          last_duration_ms: number | null;
+          last_summary: Json | null;
+          last_error: string | null;
+          run_count: number;
+          error_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          last_run_at?: string | null;
+          last_status?: string | null;
+          last_duration_ms?: number | null;
+          last_summary?: Json | null;
+          last_error?: string | null;
+          run_count?: number;
+          error_count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          last_run_at?: string | null;
+          last_status?: string | null;
+          last_duration_ms?: number | null;
+          last_summary?: Json | null;
+          last_error?: string | null;
+          run_count?: number;
+          error_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       form_submissions: {
         Row: {
           id: string;

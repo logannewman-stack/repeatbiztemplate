@@ -48,7 +48,7 @@ who slip — with one specific suggested time, not a link to an empty calendar.
 | Styling | Tailwind CSS v4 | CSS-variable theming, so brand changes need no rebuild of tokens |
 | Database | Supabase (Postgres + Auth + Storage + RLS) | Row-level security means the client portal is safe by construction |
 | Payments | Stripe (Checkout, Billing, webhooks) | Subscriptions, deposits, stored-card fee collection |
-| Hosting | Vercel (+ Vercel Cron) | The seven automation jobs are just scheduled routes |
+| Hosting | Vercel (+ Vercel Cron) | Seven automations behind one dispatcher, so it deploys on Hobby |
 | Messaging | Resend + Twilio, pluggable | Both default to a logging no-op so a fresh fork can't text anyone |
 
 ---
@@ -98,6 +98,25 @@ a Friday without waiting for you.
 
 Realistically about half a day for the first one, and an hour or two once
 you've done a few.
+
+### Deploying
+
+```bash
+npm run preflight && npx vercel
+```
+
+It deploys on a **Hobby** plan as shipped. Two things are worth knowing:
+
+- **`NEXT_PUBLIC_*` is baked in at build time.** Adding Supabase keys in the
+  Vercel dashboard after a deploy does nothing until you redeploy.
+- **Cron.** Hobby allows two cron jobs, daily only; this platform has seven,
+  three of them sub-daily. So `vercel.json` schedules a single dispatcher at
+  `/api/cron/run` that runs whichever jobs are due. On Hobby that means
+  everything runs once a day — fine for winback and reviews, genuinely
+  degraded for reminders and waitlist fill. On Pro, change the schedule to
+  `*/15 * * * *` and nothing else needs to change. Full detail, including how
+  to drive it from an external scheduler instead, is in
+  [SETUP.md](./SETUP.md#cron-jobs-and-your-vercel-plan).
 
 ---
 
@@ -175,6 +194,7 @@ window without waiting for a deploy.
 npm test          # 136 unit tests
 npm run typecheck
 npm run build
+npm run preflight # what is configured, what will no-op, what blocks a deploy
 ```
 
 The availability engine, pricing, deposits, cancellation policy, rebooking
@@ -199,13 +219,14 @@ src/
     messaging/     Template rendering, email + SMS adapters
     supabase/      Browser, server, and service-role clients
     admin/         Dashboard, calendar, reporting queries, and authorization
+    cron-jobs/     The seven automations, plus the registry the dispatcher reads
   app/
     (public)       Landing, booking, memberships, policies, gift cards
     account/       Client portal
     admin/         Operator dashboard
     api/           Booking, availability, Stripe webhook, cron jobs
 supabase/
-  migrations/      Eleven migrations — schema, functions, views, RLS, storage
+  migrations/      Twelve migrations — schema, functions, views, RLS, storage
   seed.sql         123 Example Studio
   demo-history.sql Nine months of synthetic history for demos
 ```

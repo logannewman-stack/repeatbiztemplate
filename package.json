@@ -19,7 +19,8 @@
     "db:types": "supabase gen types typescript --local > src/types/database.ts",
     "db:seed": "supabase db reset --no-seed && psql \"$SUPABASE_DB_URL\" -f supabase/seed.sql",
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
-    "setup": "node scripts/setup-wizard.mjs"
+    "setup": "node scripts/preflight.mjs",
+    "preflight": "node scripts/preflight.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

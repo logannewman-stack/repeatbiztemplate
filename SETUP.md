@@ -321,9 +321,10 @@ customers, and generic copy reads like spam.
 
 ---
 
-## 7. Deploy — 20 minutes
+## 7. Deploy to Vercel — 20 minutes
 
 ```bash
+npm run preflight   # reports what is missing before you find out the hard way
 npx vercel
 ```
 
@@ -331,30 +332,98 @@ Add every variable from `.env.local` in the Vercel dashboard, plus:
 
 ```env
 NEXT_PUBLIC_APP_URL=https://yourdomain.com
-CRON_SECRET=<random string>
+CRON_SECRET=<long random string>
 ```
 
-`CRON_SECRET` is required. The cron routes refuse to run without it rather than
-running unauthenticated — otherwise anyone who guesses the URL can fire the
-entire messaging pipeline.
+### `NEXT_PUBLIC_*` is baked in at build time
 
-Cron schedules come from `vercel.json` automatically:
+Not read at runtime. Adding Supabase credentials in the Vercel dashboard
+after a deploy changes nothing until you **redeploy**. The same applies in
+reverse: a build made with credentials keeps them even if you remove the
+values. Whenever you change one, rebuild.
 
-| Job | Schedule | What it does |
+### Cron jobs and your Vercel plan
+
+This is the one thing that will reject a deployment outright, so it is worth
+understanding before you hit it.
+
+| | Cron jobs | Schedules |
 |---|---|---|
-| `reminders` | hourly | Appointment reminders at each configured lead time |
-| `rebooking-nudges` | daily 15:00 UTC | Nudges clients past their personal interval, with a real suggested slot |
-| `winback` | weekly | Escalating offers to lapsed clients |
-| `membership-health` | daily | Resumes pauses, warns on expiring credits, pitches memberships |
-| `waitlist-fill` | every 15 min | Offers freed slots to the waitlist |
-| `review-requests` | daily | Review asks and first-visit follow-ups |
-| `refresh-metrics` | nightly | Recomputes client metrics and lifecycle |
+| **Hobby** | 2 maximum | Once per day only |
+| **Pro** | 40 | Any |
 
-Verify one after deploy:
+The platform has **seven** automations, three of which want to run more than
+once a day. Declaring them individually in `vercel.json` fails on Hobby with
+an error before the build even starts.
+
+So they do not run individually. `vercel.json` schedules **one** endpoint —
+`/api/cron/run` — which dispatches all seven, running whichever are due. Each
+job declares a minimum interval in `src/lib/cron-jobs/index.ts`, so the same
+code does the right thing at any trigger frequency.
+
+**On Hobby**, the shipped config works as-is. The dispatcher fires once daily
+at 09:00 UTC and every automation runs once a day. That is a real degradation
+and it is worth being honest about what it costs:
+
+| Automation | Cost of running only daily |
+|---|---|
+| Reminders | A 3-hour reminder cannot exist. Confirmations go out late, and unconfirmed appointments no-show more. |
+| Waitlist fill | A slot freed at 10am is not offered until the next morning — usually too late to fill it. |
+| Rebooking nudges | Fine. A day either side of "you're due" makes no difference. |
+| Winback, reviews, membership health, metrics | Fine. All are daily-or-slower by nature. |
+
+**On Pro**, change one line in `vercel.json`:
+
+```json
+{ "path": "/api/cron/run", "schedule": "*/15 * * * *" }
+```
+
+Nothing else changes. The dispatcher already knows each job's cadence, so
+reminders resume hourly and the waitlist fills within fifteen minutes.
+
+**Prefer separate cron entries on Pro?** Every job is still individually
+reachable at `/api/cron/<key>`. Replace the single entry with one per job on
+whatever schedule you like — the dispatcher and the individual routes call the
+same code.
+
+**Not on Vercel, or want sub-daily on Hobby?** Point any external scheduler
+(GitHub Actions, cron-job.org, an EC2 crontab) at:
 
 ```bash
-curl -H "Authorization: Bearer $CRON_SECRET" https://yourdomain.com/api/cron/refresh-metrics
+curl -H "Authorization: Bearer $CRON_SECRET" https://yourdomain.com/api/cron/run
 ```
+
+Hitting it every 15 minutes gives you the full Pro behaviour on a Hobby plan.
+
+### Verifying the automations actually run
+
+`CRON_SECRET` is required — the routes refuse to run without it rather than
+running unauthenticated, so a missing secret means every automation 500s.
+
+```bash
+# Run whatever is due
+curl -H "Authorization: Bearer $CRON_SECRET" https://yourdomain.com/api/cron/run
+
+# Force one job regardless of when it last ran
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  "https://yourdomain.com/api/cron/run?jobs=winback"
+
+# Force everything
+curl -H "Authorization: Bearer $CRON_SECRET" \
+  "https://yourdomain.com/api/cron/run?force=1"
+```
+
+The response lists what ran, what was skipped and when it is next due. Every
+run is also recorded in the `cron_runs` table, which is how you answer "did
+the automations run last night?" once the thing is live.
+
+### Function timeouts
+
+Cron routes are set to `maxDuration = 60`, which is the Hobby ceiling and well
+within Pro's. If a client list grows large enough for `refresh-metrics` to
+time out, run it against a smaller page size or move it to a Pro plan with a
+longer limit — it pages through clients rather than loading them all, so it
+degrades gracefully rather than falling over.
 
 ---
 
@@ -435,6 +504,17 @@ rebuild.
 
 **Stripe webhook 400s** — `STRIPE_WEBHOOK_SECRET` mismatch. The local
 `stripe listen` secret and the production endpoint secret are different values.
+
+**Vercel rejects the deployment over cron jobs** — the account is on Hobby and
+`vercel.json` declares more than two, or one runs more than daily. The shipped
+config has a single daily entry and deploys on any plan; if you edited it for
+Pro and then moved the project to a Hobby account, revert that change. Run
+`npm run preflight` to see which schedules are the problem.
+
+**The automations never run** — check in order: `CRON_SECRET` is set in Vercel
+(without it every route 500s), the deployment is on a plan whose cron actually
+fired, and the `cron_runs` table has rows. A job with `last_status = 'error'`
+carries the message in `last_error`.
 
 **Messages aren't arriving** — check `campaign_sends`. A row with
 `status = 'skipped'` carries a `skip_reason` explaining exactly why. A row with

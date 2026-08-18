@@ -1,107 +1,36 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { loadBusiness } from '@/lib/booking/queries';
-import { resolveRules } from '@/lib/rules';
-import { dispatch } from '@/lib/retention/dispatch';
-import { authorizeCron, summarize } from '@/lib/cron';
+import { authorizeCron } from '@/lib/cron';
+import { isSupabaseConfigured } from '@/lib/demo';
+import { run } from '@/lib/cron-jobs/review-requests';
 
 /**
- * Review requests and post-visit follow-ups. Runs daily.
+ * Review asks and first-visit follow-ups.
  *
- * Also handles the first-visit follow-up, which is the single most valuable
- * message in the system: whether a new client comes back a second time is
- * where retention is actually decided.
+ * Thin wrapper so this job stays individually reachable — for a manual run, an
+ * external scheduler, or a Vercel plan that can afford separate cron entries.
+ * On the default deployment `/api/cron/run` drives it instead, because Hobby
+ * allows only two cron jobs and this platform has seven.
  */
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const denied = authorizeCron(request);
   if (denied) return denied;
 
-  const startedAt = Date.now();
-  const business = await loadBusiness();
-  if (!business) {
-    return NextResponse.json({ error: 'Business not configured.' }, { status: 500 });
-  }
-
-  const rules = resolveRules(business.policy);
-  const supabase = createAdminClient();
-  const results: Array<{ status: string }> = [];
-  let firstVisits = 0;
-
-  const since = new Date(
-    Date.now() - (rules.reviews.requestDelayHours + 24) * 3_600_000
-  );
-  const until = new Date(Date.now() - rules.reviews.requestDelayHours * 3_600_000);
-
-  const { data: completed } = await supabase
-    .from('appointments')
-    .select('id, client_id, completed_at')
-    .eq('business_id', business.id)
-    .eq('status', 'completed')
-    .gte('completed_at', since.toISOString())
-    .lt('completed_at', until.toISOString());
-
-  for (const appointment of completed ?? []) {
-    // A client's first completed visit gets the follow-up instead of a review
-    // ask — the priority is getting them back, not getting a star rating.
-    const { count } = await supabase
-      .from('appointments')
-      .select('id', { count: 'exact', head: true })
-      .eq('client_id', appointment.client_id)
-      .eq('status', 'completed');
-
-    const isFirstVisit = (count ?? 0) <= 1;
-
-    if (isFirstVisit) {
-      firstVisits++;
-      results.push(
-        await dispatch({
-          businessId: business.id,
-          campaignKey: 'first_visit_followup',
-          clientId: appointment.client_id,
-          occurrence: appointment.id,
-          appointmentId: appointment.id,
-        })
-      );
-      continue;
-    }
-
-    if (!rules.reviews.enabled) continue;
-
-    results.push(
-      await dispatch({
-        businessId: business.id,
-        campaignKey: 'review_request',
-        clientId: appointment.client_id,
-        occurrence: appointment.id,
-        appointmentId: appointment.id,
-      })
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json(
+      { error: 'Supabase is not configured, so there is nothing to run.' },
+      { status: 503 }
     );
   }
 
-  // --- No-show follow-ups --------------------------------------------------
-  // A no-show is not necessarily a lost client, but the window is short.
-
-  const { data: noShows } = await supabase
-    .from('appointments')
-    .select('id, client_id')
-    .eq('business_id', business.id)
-    .eq('status', 'no_show')
-    .gte('no_show_at', new Date(Date.now() - 26 * 3_600_000).toISOString())
-    .lt('no_show_at', new Date(Date.now() - 2 * 3_600_000).toISOString());
-
-  for (const appointment of noShows ?? []) {
-    results.push(
-      await dispatch({
-        businessId: business.id,
-        campaignKey: 'no_show_followup',
-        clientId: appointment.client_id,
-        occurrence: appointment.id,
-        appointmentId: appointment.id,
-      })
+  try {
+    return NextResponse.json(await run());
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Job failed.' },
+      { status: 500 }
     );
   }
-
-  return NextResponse.json(
-    summarize('review-requests', startedAt, results, { firstVisits })
-  );
 }
