@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { loadBrand, brandCssVars } from '@/lib/brand';
+import { ServiceWorkerRegistrar } from '@/components/app';
 import { resolveAppUrl } from '@/lib/url';
 import './globals.css';
 
@@ -28,6 +29,15 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [brand.assets.ogImage],
     },
     manifest: '/manifest.webmanifest',
+    icons: {
+      icon: [
+        { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+        { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      ],
+      // iOS ignores the manifest here. Miss this and the home screen shows a
+      // screenshot of the page instead of an icon.
+      apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }],
+    },
     appleWebApp: {
       capable: true,
       title: brand.shortName,
@@ -40,6 +50,9 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  // Lets the app paint into the notch and home-indicator areas. Without it
+  // iOS letterboxes a standalone app with white bars at both ends.
+  viewportFit: 'cover',
   // Booking forms must stay zoomable — never set maximumScale here.
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#ffffff' },
@@ -62,6 +75,7 @@ export default async function RootLayout({
           Skip to content
         </a>
         {children}
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

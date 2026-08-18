@@ -202,6 +202,51 @@ window without waiting for a deploy.
 
 ---
 
+## It installs like an app
+
+The client-facing side is a shell, not a site. One non-scrolling frame, a
+bottom tab bar, and a large title that collapses into the bar as you scroll —
+the same structure a native app uses, for the same reason: the chrome has to
+stay put while only the content moves.
+
+What that buys, and where it lives:
+
+| Behaviour | Where |
+| --- | --- |
+| Tab bar, safe areas, one scroll region | `src/components/app/AppFrame.tsx` |
+| Collapsing large-title header, back chevron | `src/components/app/Screen.tsx` |
+| Inset grouped lists, chevron rows | `src/components/app/List.tsx` |
+| Bottom sheet with drag-to-dismiss | `src/components/app/Sheet.tsx` |
+| Add-to-home-screen, with iOS instructions | `src/components/app/InstallPrompt.tsx` |
+| Offline support, instant relaunch | `public/sw.js` |
+| No tap highlight, no rubber-band, 44pt targets | the native layer in `globals.css` |
+
+Client routes live in the `src/app/(app)/` route group so they share that
+shell. A route group changes no URLs — `/book` is still `/book`. Admin sits
+outside it deliberately: a manager on a laptop wants a dense tool, not a phone.
+
+### App icons
+
+iOS will not use an SVG for a home-screen icon — ship only SVG and the home
+screen shows a screenshot of the page instead. So real PNGs are generated:
+
+```bash
+npm run icons
+```
+
+That rasterises `public/brand/icon-512.svg` into `public/icons/` in the three
+shapes the platforms need — a flattened square for iOS (which applies its own
+squircle), the icon as drawn for desktop, and an inset copy for Android's
+arbitrary mask. Replace the SVG with the client's mark and re-run.
+
+### Checking it on a phone
+
+The shell is the part most worth looking at on real hardware. `npm run dev`,
+then open the machine's LAN address on a phone on the same network. To check
+the installed experience specifically, deploy a preview and add it to the home
+screen — `display-mode: standalone` only becomes true once it is installed, and
+several behaviours (no address bar, no browser back button) only appear there.
+
 ## Testing
 
 ```bash

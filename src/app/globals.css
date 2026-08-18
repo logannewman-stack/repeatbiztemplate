@@ -123,3 +123,195 @@ input, select, textarea { font-size: max(16px, 1rem); }
   .no-print { display: none !important; }
   body { background: #fff; color: #000; }
 }
+
+/* ==========================================================================
+   NATIVE APP LAYER
+   ==========================================================================
+   Everything below exists to stop this feeling like a website in a browser.
+
+   The difference between "responsive site" and "app" is mostly not visual —
+   it is that the chrome does not scroll, rubber-banding does not reveal a
+   white void behind the page, taps do not flash grey rectangles, and text
+   does not get selected when a thumb rests on a tab bar. Those are the tells.
+   ========================================================================== */
+
+@theme {
+  /* iOS-ish spring curves. The overshoot on --ease-spring is what makes a
+     sheet feel physical rather than animated. */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --duration-tap: 100ms;
+  --duration-sheet: 380ms;
+  --duration-nav: 280ms;
+
+  /* Apple's Human Interface Guidelines put the minimum tap target at 44pt. */
+  --tap-min: 44px;
+
+  --tabbar-height: 52px;
+  --header-height: 44px;
+}
+
+:root {
+  /* Named so components never have to repeat the env() fallback dance. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Real estate the fixed chrome occupies, for content to pad against. */
+  --chrome-bottom: calc(var(--tabbar-height) + var(--safe-bottom));
+}
+
+/* --- Touch behaviour ------------------------------------------------------ */
+
+html {
+  /* Kills the flash of grey on every tap in iOS Safari and Android Chrome. */
+  -webkit-tap-highlight-color: transparent;
+  /* Stops the whole document rubber-banding; scrolling happens in .app-scroll. */
+  overscroll-behavior-y: none;
+}
+
+body {
+  /* A long-press on a button should not offer "Copy"/"Look Up" like a webpage.
+     Re-enabled for real content below. */
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+  overscroll-behavior-y: none;
+}
+
+/* Anything a person might legitimately want to copy — a price, an address,
+   a confirmation code — stays selectable. */
+p, span, h1, h2, h3, h4, h5, h6, li, dd, dt, td, th, address, time, code,
+input, textarea, [data-selectable] {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* Removes the 300ms click delay without disabling pinch-zoom on the page. */
+a, button, [role="button"], [role="tab"], label, summary, select {
+  touch-action: manipulation;
+}
+
+/* Interactive controls get a real target even when the glyph inside is small. */
+button, [role="button"], a[role="button"], [role="tab"] {
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+}
+/* ...except where a component deliberately sets its own density. */
+[data-compact-target] {
+  min-height: 0;
+  min-width: 0;
+}
+
+/* --- App frame ------------------------------------------------------------ */
+
+/* The shell fills the viewport exactly once and never scrolls itself. Only
+   .app-scroll moves. This is what keeps the tab bar and header pinned like
+   native chrome instead of sticky page elements that drift on iOS. */
+.app-frame {
+  display: flex;
+  flex-direction: column;
+  /* dvh tracks the collapsing URL bar; svh is the safe floor before support. */
+  height: 100svh;
+  height: 100dvh;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.app-scroll {
+  flex: 1;
+  /* Without this a flex item is sized by its min-content width, so one long
+     unbreakable token — a URL, a file path, a long email — silently widens
+     the whole frame and drags the tab bar off the side of the screen. */
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* Scroll chaining into the document is what produces the "website" bounce. */
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+/* Same failure one level down: real content contains things that do not break
+   at spaces. Wrap them rather than let them set the layout width. */
+.app-scroll p,
+.app-scroll li,
+.app-scroll dd,
+.app-scroll h1, .app-scroll h2, .app-scroll h3, .app-scroll h4 {
+  overflow-wrap: anywhere;
+}
+.app-scroll::-webkit-scrollbar { width: 0; height: 0; }
+
+/* --- Chrome --------------------------------------------------------------- */
+
+.app-chrome {
+  /* Frosted glass over scrolling content, the way native bars read. */
+  background: color-mix(in oklab, var(--color-bg) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* iOS hairlines are thinner than 1px on retina. A 1px border reads as heavy. */
+.hairline-t { box-shadow: inset 0 0.5px 0 var(--color-border); }
+.hairline-b { box-shadow: inset 0 -0.5px 0 var(--color-border); }
+
+/* --- Press feedback ------------------------------------------------------- */
+
+/* Native controls dim and shrink under a finger and release with a spring.
+   Applied opt-in via data-press so it never fights a component's own states. */
+[data-press] {
+  transition: transform var(--duration-tap) var(--ease-ios),
+              opacity var(--duration-tap) var(--ease-ios);
+}
+[data-press]:active:not(:disabled) {
+  transform: scale(0.96);
+  opacity: 0.6;
+}
+[data-press="row"]:active:not(:disabled) {
+  transform: none;
+  opacity: 1;
+  background-color: var(--color-surface-2);
+}
+
+/* --- Standalone (installed to the home screen) ---------------------------- */
+
+@media (display-mode: standalone) {
+  /* No browser chrome to scroll away, so the page must never bounce at all. */
+  html, body { position: fixed; inset: 0; overflow: hidden; width: 100%; }
+
+  /* Anything that only makes sense in a browser tab. */
+  [data-browser-only] { display: none !important; }
+}
+
+/* The inverse: install prompts, "open in app" hints. */
+[data-standalone-only] { display: none; }
+@media (display-mode: standalone) {
+  [data-standalone-only] { display: revert; }
+}
+
+/* --- Motion --------------------------------------------------------------- */
+
+@keyframes sheet-in {
+  from { transform: translate3d(0, 100%, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes push-in {
+  from { transform: translate3d(24px, 0, 0); opacity: 0; }
+  to   { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
+.animate-sheet-in { animation: sheet-in var(--duration-sheet) var(--ease-ios); }
+.animate-fade-in  { animation: fade-in 200ms var(--ease-ios); }
+.animate-push-in  { animation: push-in var(--duration-nav) var(--ease-out-quint); }
+
+/* Momentum-scrolled rows should not repaint mid-flick. */
+.app-scroll > * { transform: translateZ(0); }
