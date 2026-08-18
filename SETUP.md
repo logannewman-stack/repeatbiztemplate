@@ -25,62 +25,70 @@ npm run dev
 
 ---
 
-## 1. Brand — 20 minutes
+## 1. Two ways to configure
 
-Edit `src/config/brand.ts`:
+Everything client-specific can be set **in the browser** at `/admin/setup`
+once Supabase is connected, or **in code** before you deploy. Both write to the
+same places; the database wins at runtime.
+
+| | Browser (`/admin/setup`) | Code (`src/config/*`) |
+|---|---|---|
+| Takes effect | Immediately | Next deploy |
+| Who can do it | The client, or you | You |
+| Best for | Everything, normally | Pre-branding a fork before handover |
+
+**Recommended: skip to step 2, deploy, then do it all in the wizard.** The rest
+of this section covers the code route for when you want a fork that arrives
+already branded.
+
+### The code route
+
+`src/config/brand.ts` — name, tagline, colors (OKLCH), fonts, contact details,
+asset paths:
 
 ```ts
 export const brand: BrandConfig = {
   name: 'Wildflower Hair Studio',
   shortName: 'Wildflower',
   tagline: 'Book your next visit before you leave.',
-  vertical: 'hair_salon',        // ← this drives a lot; see step 2
+  vertical: 'hair_salon',
   slug: 'wildflower-hair',
   contact: { phone: '(555) 123-4567', email: 'hello@wildflowerhair.com', ... },
   colors: { brand: 'oklch(0.52 0.13 250)', ... },
-  ...
 };
 ```
 
-Colors are OKLCH. If you have a hex from the client's brand guide, convert it —
-OKLCH keeps perceived lightness consistent when you derive hover and muted
-states, which hex does not.
+Colors are OKLCH. If you have a hex from the client's brand guide, the wizard
+converts it for you — or use `hexToOklch()` from `src/lib/brand.ts`. OKLCH keeps
+perceived lightness consistent when hover and muted states are derived from the
+base color, which hex does not.
 
-Replace the placeholders in `public/brand/`:
-
-| File | Used for |
-|---|---|
-| `logo.svg` | Header |
-| `logo-mark.svg` | Compact header, admin sidebar |
-| `icon-192.svg`, `icon-512.svg` | PWA install icons |
-| `og.svg` | Link previews |
-| `hero.svg` | Landing page hero |
-
-Reload. The whole app is now branded.
+Replace the placeholders in `public/brand/` (`logo.svg`, `logo-mark.svg`,
+`icon-192.svg`, `icon-512.svg`, `og.svg`, `hero.svg`). Uploading through the
+wizard writes to Supabase Storage instead and overrides these.
 
 ---
 
-## 2. Vertical and catalog — 30 minutes
+## 2. Vertical and catalog
 
-Setting `vertical` in `brand.ts` loads a preset from
-`src/config/verticals.ts` covering vocabulary, default services with realistic
-durations and prices, add-ons, membership shapes, retail, and rebooking
-intervals.
+`brand.vertical` selects a preset from `src/config/verticals.ts` covering
+vocabulary, default services with realistic durations and prices, add-ons,
+membership shapes, retail, and rebooking intervals.
 
 Available: `hair_salon`, `nail_salon`, `med_spa`, `massage`, `barbershop`,
 `lash_brow`, `waxing`, `tanning`, `pet_grooming`, `chiropractic`,
 `physical_therapy`, `dental`, `personal_training`, `auto_detailing`, `generic`.
 
-Then adjust the preset to the client's real menu. The field that matters most:
+In the wizard, the **Services** step imports the whole preset into the database
+in one click, then you edit it in Admin → Services. The import is idempotent —
+re-running it only adds what is missing.
 
-```ts
-{ name: 'Root Touch-Up', durationMin: 90, processingMin: 35,
-  priceCents: 11000, rebookIntervalDays: 28, category: 'Color' }
-```
+Two fields do most of the work:
 
 - **`rebookIntervalDays`** drives the pre-selected date on the rebooking prompt,
   the "due for a visit" query, and the lapse threshold. Get it roughly right and
-  the retention engine works; leave it wrong and it nags people at the wrong time.
+  the retention engine works; leave it wrong and it nags people at the wrong
+  time. Sanity-check every one of these with the owner.
 - **`processingMin`** is the gap where the provider is free — color developing,
   laser cooling, a mask setting. The availability engine books a second client
   into that window, which is the single largest capacity gain available to a
@@ -101,7 +109,7 @@ Walk through it with the owner. The ones worth actually discussing:
 | `deposits.requireAboveCents` | Below this, deposits cost more conversion than they save |
 | `deposits.waiveForMembers` | Leave `true`. It is a felt membership benefit |
 | `rebooking.nudgeDayOffsets` | `[0, 5, 14]` is a reasonable default. More than three touches annoys |
-| `lapse.lapseMultiplier` | 2× cadence. Lower for med spa, higher for nails |
+| `lapse.lapseMultiplier` | 2x cadence. Lower for med spa, higher for nails |
 | `memberships.saveFlow.offers` | Order matters — pause first, discount last |
 | `reviews.publicReviewUrl` | **Must be replaced.** Points at a placeholder domain |
 
@@ -185,6 +193,38 @@ After any schema change:
 ```bash
 npm run db:types
 ```
+
+---
+
+## 4b. Run the setup wizard — 20 minutes
+
+With Supabase connected, open **`/admin/setup`** and work through the five
+steps. This is where a client build actually gets configured:
+
+1. **Business** — name, type, contact, address, timezone, currency, tax rate.
+   The business type sets the vocabulary used everywhere: client vs. patient,
+   stylist vs. injector, appointment vs. session.
+2. **Look** — upload the logo, the square app icon, and a real hero photo, then
+   pick one brand color. The rest of the palette is derived from it, and a live
+   preview shows the actual booking card as you change things. Corner style
+   (sharp / soft / round) sets the radius scale.
+3. **Services** — import the vertical's starter menu in one click, then edit
+   prices in Admin → Services.
+4. **Team** — add each provider. They can perform every service by default.
+5. **Hours** — weekly opening hours. Nothing can be booked outside these,
+   whatever a provider's own schedule says.
+
+Then set each provider's weekly schedule in **Admin → Team → Schedule**. Split
+shifts are supported — add more than one shift to a day and the hours in
+between stay unbookable.
+
+**Nobody can book until a provider has both a schedule and at least one
+assigned service.** The Team page flags both conditions in red.
+
+Logos and photos upload to Supabase Storage. Migration `0011_storage.sql`
+creates three buckets: `brand` and `media` are public (they are embedded in
+emails and served from a CDN), `client` is private and reachable only through a
+signed URL — that is where before/after photos and signed consent forms go.
 
 ---
 
@@ -321,8 +361,11 @@ curl -H "Authorization: Bearer $CRON_SECRET" https://yourdomain.com/api/cron/ref
 ## 8. Go-live checklist
 
 **Content**
+- [ ] Setup wizard completed end to end
+- [ ] Real logo, app icon, and hero photo uploaded
 - [ ] Real services, durations, and prices
-- [ ] Real staff with bios, photos, and schedules
+- [ ] Real staff with bios, photos, and weekly schedules
+- [ ] Every provider has at least one assigned service
 - [ ] `rebookIntervalDays` sanity-checked with the owner for every service
 - [ ] Message templates rewritten in the client's voice
 - [ ] `rules.reviews.publicReviewUrl` points at the real listing
@@ -376,10 +419,19 @@ server-side.
 the public catalog. Server-side reads that need to bypass it must use
 `createAdminClient()`, never the browser or SSR client.
 
-**No available slots** — check in order: staff assigned to the service
-(`service_staff`), schedules exist for that weekday, `effective_from` is in the
-past, location `hours` cover the day, and the date is inside
-`maxAdvanceBookingDays`.
+**No available slots** — check in order: the provider is assigned to the
+service (Admin → Team shows a red flag when they are not), a weekly schedule
+exists for that weekday, `effective_from` is in the past, the location's
+opening hours cover the day, and the date is inside `maxAdvanceBookingDays`.
+
+**Uploads fail** — migration `0011_storage.sql` has not run, so the buckets do
+not exist. Uploads are also capped at 5MB for brand assets and 10MB for photos,
+and only PNG, JPG, WebP, SVG, and AVIF are accepted.
+
+**Branding changes do not appear** — the wizard writes to `businesses.branding`
+and the layout reads it per request, so a hard refresh is normally enough. If
+you edited `src/config/brand.ts` instead, that is compiled in and needs a
+rebuild.
 
 **Stripe webhook 400s** — `STRIPE_WEBHOOK_SECRET` mismatch. The local
 `stripe listen` secret and the production endpoint secret are different values.

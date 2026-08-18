@@ -77,16 +77,24 @@ anything.
 
 Full walkthrough in **[SETUP.md](./SETUP.md)**. The short version:
 
-1. **Brand** — edit `src/config/brand.ts` (name, colors, contact, vertical) and
-   drop real assets into `public/brand/`.
-2. **Catalog** — edit `src/config/verticals.ts` or seed the real services
-   directly into the database.
-3. **Rules** — tune `src/config/rules.ts`: cancellation windows, deposit
-   thresholds, rebooking cadence, membership terms.
-4. **Supabase** — create a project, run the migrations, seed.
-5. **Stripe** — add keys, create the webhook endpoint.
-6. **Messaging** — add Resend and Twilio credentials.
-7. **Vercel** — deploy. Cron schedules come from `vercel.json` automatically.
+1. **Supabase** — create a project, run the migrations, seed.
+2. **Deploy** to Vercel with the Supabase keys.
+3. **Open `/admin/setup`** and fill in the wizard — everything below is done in
+   the browser, and takes effect immediately with no redeploy:
+   - business name, type, contact details, timezone, tax rate
+   - logo, app icon, hero photo, and one brand color (the rest of the palette
+     is derived from it, with a live preview of the real booking card)
+   - the service menu — import the vertical's starter catalog in one click,
+     then edit prices and durations
+   - providers, their price levels, and weekly schedules
+   - opening hours
+4. **Stripe** — add keys and create the webhook endpoint.
+5. **Messaging** — add Resend and Twilio credentials.
+
+Nothing above requires editing a file. `src/config/*` still holds the compiled
+defaults — useful when you want a fork to start life already branded — but the
+database wins over them at runtime, so a client can rename themselves at 9pm on
+a Friday without waiting for you.
 
 Realistically about half a day for the first one, and an hour or two once
 you've done a few.
@@ -95,8 +103,9 @@ you've done a few.
 
 ## The three fork points
 
-Everything client-specific lives in three files. If you find yourself editing
-anything else to launch a client, that is a bug in the template.
+Everything client-specific lives in three files — or, at runtime, in the
+database rows the setup wizard writes. If you find yourself editing anything
+else to launch a client, that is a bug in the template.
 
 ### `src/config/brand.ts`
 Name, tagline, colors (OKLCH), fonts, contact details, asset paths, and the
@@ -132,10 +141,17 @@ window without waiting for a deploy.
 - Installable PWA
 
 **Operator-facing**
+- Guided setup wizard — logo upload, brand color with live preview, one-click
+  service catalog import, provider and schedule entry, opening hours
 - Dashboard leading with MRR, rebooking rate, attendance, and average ticket
+- Day and week calendar with provider columns, overlap lanes, processing-gap
+  shading, a live "now" line, and click-through appointment actions
+- Checkout terminal: add-ons and retail, tips, membership credits, deposit
+  applied, and a rebooking step with a real suggested slot
 - Retention queue ranked by expected recovered value, not by how late someone is
+- Service and add-on management with attach-rate reporting
+- Team management with split-shift weekly schedules
 - Client CRM with lifecycle segmentation, formula and clinical notes, files
-- Today's schedule
 - Membership management with save-flow and dunning visibility
 - Campaign performance with attributed revenue per automation
 - Twelve-month reporting
@@ -156,13 +172,14 @@ window without waiting for a deploy.
 ## Testing
 
 ```bash
-npm test          # 103 unit tests
+npm test          # 136 unit tests
 npm run typecheck
 npm run build
 ```
 
 The availability engine, pricing, deposits, cancellation policy, rebooking
-cadence, and campaign eligibility are all covered. The schema, seed, and demo
+cadence, campaign eligibility, calendar overlap layout, and the hex/OKLCH
+color conversion are all covered. The schema, seed, and demo
 data generator were applied against a real PostgreSQL 16 instance, and the
 exclusion constraints were verified with SQL tests covering double-booking,
 processing-gap fill, and slot release on cancellation.
@@ -176,18 +193,19 @@ src/
   config/          The three fork points — brand, verticals, rules
   lib/
     booking/       Availability engine, pricing, deposits, cancellation policy
+    brand.ts       Runtime brand resolution and hex/OKLCH conversion
     retention/     Rebooking cadence, campaign eligibility, dispatch
     stripe/        Checkout, subscriptions, save flow
     messaging/     Template rendering, email + SMS adapters
     supabase/      Browser, server, and service-role clients
-    admin/         Dashboard and reporting queries
+    admin/         Dashboard, calendar, reporting queries, and authorization
   app/
     (public)       Landing, booking, memberships, policies, gift cards
     account/       Client portal
     admin/         Operator dashboard
     api/           Booking, availability, Stripe webhook, cron jobs
 supabase/
-  migrations/      Ten migrations — schema, functions, views, RLS
+  migrations/      Eleven migrations — schema, functions, views, RLS, storage
   seed.sql         123 Example Studio
   demo-history.sql Nine months of synthetic history for demos
 ```

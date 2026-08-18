@@ -1,16 +1,21 @@
 import Link from 'next/link';
-import { brand } from '@/config/brand';
+import { loadBrand } from '@/lib/brand';
 import { vertical } from '@/config/verticals';
 import { Button } from '@/components/ui';
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const { brand } = await loadBrand();
+
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-bg)]/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-        <Link href="/" className="flex items-center gap-2 text-[var(--color-brand)]">
+        <Link href="/" className="flex min-w-0 items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={brand.assets.logoMark} alt="" className="size-8" aria-hidden />
-          <span className="font-semibold text-[var(--color-fg)]">{brand.name}</span>
+          <img
+            src={brand.assets.logo}
+            alt={brand.name}
+            className="h-8 max-w-44 object-contain object-left"
+          />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
@@ -20,10 +25,10 @@ export function SiteHeader() {
           <NavLink href="/account">My {vertical.visitNounPlural}</NavLink>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <a
             href={`tel:${brand.contact.phone.replace(/\D/g, '')}`}
-            className="hidden text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)] sm:block"
+            className="hidden text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-fg)] sm:block"
           >
             {brand.contact.phone}
           </a>
