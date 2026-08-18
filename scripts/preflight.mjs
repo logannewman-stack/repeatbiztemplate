@@ -15,6 +15,7 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
 const root = process.cwd();
@@ -73,6 +74,73 @@ if (existsSync(join(root, 'vercel.json'))) {
   }
 } else {
   warnings.push('No vercel.json — the scheduled automations will never run.');
+}
+
+// --- .vercelignore ----------------------------------------------------------
+//
+// This one is worth a dedicated check because it cannot fail locally. Vercel
+// applies `.vercelignore` on the build machine only — `npm run build` here
+// never sees it — so a bad pattern produces a repo that builds clean on your
+// laptop and dies on Vercel with "Module not found".
+//
+// The trap is that patterns are gitignore-style: without a leading slash they
+// match at EVERY depth. `supabase/` looks like it means the top-level
+// migrations folder; it also silently deletes `src/lib/supabase/`.
+
+if (existsSync(join(root, '.vercelignore'))) {
+  const stripped = filesExcludedByVercelIgnore();
+
+  if (stripped === null) {
+    warnings.push(
+      '.vercelignore exists but could not be checked (git unavailable). ' +
+      'Confirm by hand that no pattern matches anything under src/ — ' +
+      'patterns without a leading slash match at every directory depth.'
+    );
+  } else {
+    // Test files under src/ are the legitimate use of this file. Anything
+    // else the build might import is not.
+    const needed = stripped.filter(
+      (f) => !/\.(test|spec)\.[jt]sx?$/.test(f) && !/__tests__\//.test(f)
+    );
+
+    if (needed.length) {
+      problems.push(
+        `.vercelignore removes ${needed.length} file(s) the build may need:\n` +
+        needed.map((f) => `      ${f}`).join('\n') +
+        '\n    Vercel deletes these before building, so the build fails there ' +
+        'and only there. Anchor the offending pattern with a leading slash ' +
+        '(/supabase/ not supabase/), or delete .vercelignore — the files it ' +
+        'excludes are not in the Next.js build graph anyway.'
+      );
+    } else {
+      ok.push(`.vercelignore excludes ${stripped.length} file(s), none needed to build`);
+    }
+  }
+}
+
+/** Tracked files `.vercelignore` would delete, or null if git cannot answer. */
+function filesExcludedByVercelIgnore() {
+  try {
+    const tracked = execFileSync('git', ['ls-files'], {
+      cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    });
+
+    const out = execFileSync(
+      'git',
+      [
+        '-c', `core.excludesFile=${join(root, '.vercelignore')}`,
+        'check-ignore', '--no-index', '--stdin',
+      ],
+      { cwd: root, encoding: 'utf8', input: tracked, stdio: ['pipe', 'pipe', 'ignore'] }
+    );
+
+    return out.split('\n').filter(Boolean);
+  } catch (err) {
+    // check-ignore exits 1 with no output when nothing matches. That is a
+    // clean result, not a failure.
+    if (err.status === 1) return (err.stdout ?? '').split('\n').filter(Boolean);
+    return null;
+  }
 }
 
 if (!existsSync(join(root, 'package-lock.json'))) {

@@ -4,7 +4,7 @@
   "private": true,
   "description": "White-label rebooking & retention platform for appointment-based local businesses.",
   "engines": {
-    "node": ">=20.0.0"
+    "node": "22.x"
   },
   "scripts": {
     "dev": "next dev",
