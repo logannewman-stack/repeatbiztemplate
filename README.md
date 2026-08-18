@@ -69,7 +69,8 @@ Change `vertical` in `src/config/brand.ts` to `hair_salon`, `med_spa`,
 vocabulary, services, add-ons, membership shapes, and rebooking cadences.
 
 That is the demo you show a prospective client before you have built them
-anything.
+anything — and it works deployed, too. Push it to Vercel with no environment
+variables and you have a live URL to send them.
 
 ---
 
@@ -101,9 +102,26 @@ you've done a few.
 
 ### Deploying
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Flogannewman-stack%2Frepeatbiztemplate&project-name=repeat-biz&repository-name=repeat-biz)
+
+Or from the CLI:
+
 ```bash
 npm run preflight && npx vercel
 ```
+
+**It deploys with no environment variables at all.** Import the repo, click
+deploy, and you get a working demo — the catalog comes from
+`src/config/verticals.ts` and every screen is clickable. Connect Supabase when
+you have a real client to point it at.
+
+Two settings worth checking in Vercel after the first import:
+
+- **Production Branch** → `main`. Vercel defaults this to the repository's
+  default branch, so set it explicitly if GitHub still has another branch as
+  the default.
+- **Node.js Version** → 20 or later. It follows `engines` in `package.json`,
+  so this is usually already right.
 
 It deploys on a **Hobby** plan as shipped. Two things are worth knowing:
 
