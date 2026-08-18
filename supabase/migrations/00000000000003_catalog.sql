@@ -68,6 +68,9 @@ create table services (
   existing_clients_only boolean not null default false,
   -- Room kind this service needs; null = no room required.
   required_room_kind text,
+  -- True when the client vacates the room during the processing gap (a salon
+  -- guest moves to the processing area). Frees the room for another booking.
+  releases_room_in_gap boolean not null default false,
   max_per_day       integer,             -- capacity cap across all providers
 
   sort_order        integer not null default 0,

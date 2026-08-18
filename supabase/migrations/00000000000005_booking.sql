@@ -95,31 +95,110 @@ alter table form_submissions
   add constraint form_submissions_appointment_fk
   foreign key (appointment_id) references appointments(id) on delete set null;
 
--- Hard guarantee against double-booking a provider. Cancelled, no-show, and
--- rescheduled rows are excluded so a freed slot is immediately reusable.
--- The processing-gap overlap optimization is handled in the availability
--- engine, which books the second client entirely inside the first's gap; that
--- still produces non-overlapping [blocks_at, blocks_until) ranges.
-alter table appointments
-  add constraint appointments_no_provider_overlap
-  exclude using gist (
-    staff_id with =,
-    tstzrange(blocks_at, blocks_until) with &&
-  ) where (
-    staff_id is not null
-    and status in ('requested', 'booked', 'confirmed', 'checked_in', 'in_progress')
-  );
+-- ---------------------------------------------------------------------------
+-- Busy blocks — the double-booking guarantee
+-- ---------------------------------------------------------------------------
+-- A single [start, end) range per appointment cannot express a service with a
+-- processing gap, where the provider is genuinely free in the middle. Modeling
+-- provider-busy time as its own table lets the database enforce no-overlap
+-- while still allowing a second client to be booked into that gap — which is
+-- the largest capacity gain available to any business running color, laser, or
+-- any other develop-and-wait service.
+--
+-- Rows here are maintained entirely by trigger. Never write to it directly.
+--
+-- Rooms are treated as occupied for the whole appointment, gap included: the
+-- client is usually still sitting in it. Businesses where the client vacates
+-- during processing can relax this by setting services.releases_room_in_gap.
+-- ---------------------------------------------------------------------------
 
--- Same guarantee for rooms with capacity 1.
-alter table appointments
-  add constraint appointments_no_room_overlap
-  exclude using gist (
-    room_id with =,
-    tstzrange(blocks_at, blocks_until) with &&
-  ) where (
-    room_id is not null
-    and status in ('requested', 'booked', 'confirmed', 'checked_in', 'in_progress')
-  );
+create table appointment_busy_blocks (
+  id                uuid primary key default gen_random_uuid(),
+  appointment_id    uuid not null references appointments(id) on delete cascade,
+  business_id       uuid not null references businesses(id) on delete cascade,
+  staff_id          uuid references staff(id) on delete cascade,
+  room_id           uuid references rooms(id) on delete cascade,
+  block             tstzrange not null,
+
+  constraint busy_blocks_no_staff_overlap
+    exclude using gist (staff_id with =, block with &&)
+    where (staff_id is not null),
+
+  constraint busy_blocks_no_room_overlap
+    exclude using gist (room_id with =, block with &&)
+    where (room_id is not null)
+);
+
+create index on appointment_busy_blocks (appointment_id);
+create index on appointment_busy_blocks using gist (block);
+
+-- Statuses that actually occupy the calendar.
+create or replace function appointment_holds_time(p_status appointment_status)
+returns boolean
+language sql
+immutable
+as $$
+  select p_status in ('requested', 'booked', 'confirmed', 'checked_in', 'in_progress');
+$$;
+
+create or replace function trg_sync_busy_blocks()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_releases_room boolean := false;
+begin
+  delete from appointment_busy_blocks where appointment_id = new.id;
+
+  if not appointment_holds_time(new.status) then
+    return new;
+  end if;
+
+  select coalesce(s.releases_room_in_gap, false) into v_releases_room
+  from services s where s.id = new.service_id;
+
+  -- Provider: one block, or two flanking the processing gap.
+  if new.staff_id is not null then
+    if new.gap_starts_at is not null and new.gap_ends_at is not null
+       and new.gap_ends_at > new.gap_starts_at then
+      insert into appointment_busy_blocks (appointment_id, business_id, staff_id, block)
+      values
+        (new.id, new.business_id, new.staff_id,
+         tstzrange(new.blocks_at, new.gap_starts_at, '[)')),
+        (new.id, new.business_id, new.staff_id,
+         tstzrange(new.gap_ends_at, new.blocks_until, '[)'));
+    else
+      insert into appointment_busy_blocks (appointment_id, business_id, staff_id, block)
+      values (new.id, new.business_id, new.staff_id,
+              tstzrange(new.blocks_at, new.blocks_until, '[)'));
+    end if;
+  end if;
+
+  -- Room: occupied throughout unless the service explicitly frees it.
+  if new.room_id is not null then
+    if v_releases_room and new.gap_starts_at is not null and new.gap_ends_at is not null then
+      insert into appointment_busy_blocks (appointment_id, business_id, room_id, block)
+      values
+        (new.id, new.business_id, new.room_id,
+         tstzrange(new.blocks_at, new.gap_starts_at, '[)')),
+        (new.id, new.business_id, new.room_id,
+         tstzrange(new.gap_ends_at, new.blocks_until, '[)'));
+    else
+      insert into appointment_busy_blocks (appointment_id, business_id, room_id, block)
+      values (new.id, new.business_id, new.room_id,
+              tstzrange(new.blocks_at, new.blocks_until, '[)'));
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger appointments_sync_busy_blocks
+  after insert or update of status, staff_id, room_id, blocks_at, blocks_until,
+                            gap_starts_at, gap_ends_at, service_id
+  on appointments
+  for each row execute function trg_sync_busy_blocks();
 
 create table appointment_addons (
   id                uuid primary key default gen_random_uuid(),

@@ -110,6 +110,7 @@ alter table forms                   enable row level security;
 alter table form_submissions        enable row level security;
 alter table appointments            enable row level security;
 alter table appointment_addons      enable row level security;
+alter table appointment_busy_blocks enable row level security;
 alter table waitlist_entries        enable row level security;
 alter table membership_plans        enable row level security;
 alter table memberships             enable row level security;
@@ -183,23 +184,9 @@ create policy "public read time off" on staff_time_off
 create policy "public read blocked times" on blocked_times
   for select using (true);
 
--- Public availability lookup needs to know which slots are taken, but must
--- not leak who is in them. Expose only the busy window via a dedicated view.
-create or replace view v_busy_slots
-with (security_invoker = true)
-as
-select
-  business_id, location_id, staff_id, room_id,
-  blocks_at, blocks_until, gap_starts_at, gap_ends_at
-from appointments
-where status in ('requested', 'booked', 'confirmed', 'checked_in', 'in_progress');
-
-create policy "public read busy windows" on appointments
-  for select using (
-    -- Only satisfied through v_busy_slots, which selects no identifying
-    -- columns. Direct table reads still require staff or ownership below.
-    false
-  );
+-- Availability is computed from `appointment_busy_blocks` (policy below),
+-- never from `appointments` itself — anonymous visitors must never be able to
+-- read who holds a slot, only that it is held.
 
 -- ---------------------------------------------------------------------------
 -- STAFF — business-scoped
@@ -363,6 +350,13 @@ create policy "client reads own appointment addons" on appointment_addons
     exists (select 1 from appointments a where a.id = appointment_addons.appointment_id
             and a.client_id in (select auth_client_ids()))
   );
+
+-- Busy blocks are what the public availability lookup reads. They carry no
+-- client identity — only which provider/room is occupied when — so exposing
+-- them publicly is what lets the booking page compute open slots without
+-- leaking who is in the chair.
+create policy "public read busy blocks" on appointment_busy_blocks
+  for select using (true);
 
 create policy "staff manage waitlist" on waitlist_entries
   for all using (business_id = auth_business_id())
