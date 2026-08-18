@@ -6,6 +6,7 @@ import { isStripeConfigured } from '@/lib/stripe/client';
 import { ensureStripeCustomer } from '@/lib/stripe/customers';
 import { createMembershipCheckout } from '@/lib/stripe/checkout';
 import { syncPlanToStripe } from '@/lib/stripe/subscriptions';
+import { resolveAppUrl } from '@/lib/url';
 
 const bodySchema = z.object({
   planId: z.string().uuid(),
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
 
   const priceId = plan.stripe_price_id ?? (await syncPlanToStripe(plan.id));
   const customerId = await ensureStripeCustomer(client);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const appUrl = resolveAppUrl();
 
   const session = await createMembershipCheckout({
     customerId,

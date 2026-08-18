@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { isSupabaseConfigured } from '@/lib/demo';
 import { isStripeConfigured } from '@/lib/stripe/client';
 import { createBillingPortalSession, ensureStripeCustomer } from '@/lib/stripe/customers';
+import { resolveAppUrl } from '@/lib/url';
 
 /**
  * Redirect a member to Stripe's billing portal so they can update a card
@@ -11,7 +12,7 @@ import { createBillingPortalSession, ensureStripeCustomer } from '@/lib/stripe/c
  * every extra step between "my payment failed" and "fixed" costs recoveries.
  */
 export async function GET() {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const appUrl = resolveAppUrl();
 
   if (!isSupabaseConfigured() || !isStripeConfigured()) {
     return NextResponse.redirect(`${appUrl}/account/membership?error=not_configured`);

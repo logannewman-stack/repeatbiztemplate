@@ -18,6 +18,7 @@ import { render, buildVars, type BuildVarsInput } from '@/lib/messaging/render';
 import { send } from '@/lib/messaging';
 import { resolveRules } from '@/lib/rules';
 import type { CampaignTrigger } from '@/types/database';
+import { resolveAppUrl } from '@/lib/url';
 
 export interface DispatchRequest {
   businessId: string;
@@ -210,7 +211,7 @@ export async function dispatch(req: DispatchRequest): Promise<DispatchResult> {
     }
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
+  const appUrl = resolveAppUrl();
   const metricsTyped = metricsRow as {
     last_visit_at?: string | null; spend_90d_cents?: number; loyalty_points?: number;
   } | null;

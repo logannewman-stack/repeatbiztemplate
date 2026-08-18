@@ -173,18 +173,54 @@ if (isSet('NEXT_PUBLIC_SUPABASE_URL') && isSet('NEXT_PUBLIC_SUPABASE_ANON_KEY'))
   );
 }
 
+// Mirrors toOrigin() in src/lib/url.ts. A value that does not parse used to
+// fail the production build outright; the app now repairs it, so the job here
+// is to say so rather than let it pass unnoticed.
+function originOf(raw) {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    if (!url.hostname) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+const rawAppUrl = env.NEXT_PUBLIC_APP_URL;
+const appOrigin = originOf(rawAppUrl);
+
 if (!isSet('NEXT_PUBLIC_APP_URL')) {
   warnings.push(
-    'NEXT_PUBLIC_APP_URL is not set. Links inside emails and texts will be ' +
-    'relative and will not work when a client taps them.'
+    'NEXT_PUBLIC_APP_URL is not set. On Vercel the deployment URL is used ' +
+    'automatically, so links still work — but set this to the real domain ' +
+    'before sending anything to a client.'
   );
-} else if (env.NEXT_PUBLIC_APP_URL.includes('localhost')) {
+} else if (appOrigin === null) {
+  problems.push(
+    `NEXT_PUBLIC_APP_URL is "${rawAppUrl}", which is not a usable URL. ` +
+    'The app falls back to the Vercel deployment URL rather than crashing, ' +
+    'but every link in every email and text will point at the wrong place. ' +
+    'Set it to a full origin, e.g. https://example.com'
+  );
+} else if (appOrigin.includes('localhost')) {
   warnings.push(
-    `NEXT_PUBLIC_APP_URL is ${env.NEXT_PUBLIC_APP_URL}. Messages sent from ` +
-    'production will link to localhost.'
+    `NEXT_PUBLIC_APP_URL is ${appOrigin}. Messages sent from production ` +
+    'will link to localhost.'
+  );
+} else if (appOrigin !== rawAppUrl.trim()) {
+  warnings.push(
+    `NEXT_PUBLIC_APP_URL is "${rawAppUrl}" and was repaired to ${appOrigin}. ` +
+    'Set it to the full origin so what you read here is what actually ships.'
   );
 } else {
-  ok.push(`App URL: ${env.NEXT_PUBLIC_APP_URL}`);
+  ok.push(`App URL: ${appOrigin}`);
 }
 
 const supabaseReady =

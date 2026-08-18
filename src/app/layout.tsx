@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { loadBrand, brandCssVars } from '@/lib/brand';
+import { resolveAppUrl } from '@/lib/url';
 import './globals.css';
 
 /**
@@ -11,7 +12,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const { brand } = await loadBrand();
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+    // resolveAppUrl() never throws. A raw env var here fails the whole
+    // production build, not the request — see src/lib/url.ts.
+    metadataBase: new URL(resolveAppUrl()),
     title: {
       default: `${brand.name} — Book Online`,
       template: `%s · ${brand.name}`,
