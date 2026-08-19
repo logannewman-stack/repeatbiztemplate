@@ -239,6 +239,45 @@ shapes the platforms need — a flattened square for iOS (which applies its own
 squircle), the icon as drawn for desktop, and an inset copy for Android's
 arbitrary mask. Replace the SVG with the client's mark and re-run.
 
+### Push notifications
+
+Reminders are the cheapest thing that moves the no-show rate — text reminders
+are repeatedly measured cutting no-shows by around a third — and push is the
+version of that with no per-message cost.
+
+```bash
+npm run vapid        # generate the keypair, once per client
+```
+
+Set the three keys it prints and push turns on. Leave them unset and the
+channel logs instead of sending, and campaigns fall back to SMS.
+
+**The iOS constraint decides the whole flow.** Safari delivers web push only to
+an app the client has added to their Home Screen, and only when it is opened
+from that icon — the same site in a Safari tab cannot receive push at all.
+Worse, calling `requestPermission()` from a tab resolves without ever showing a
+prompt, and a permission that was never really asked for cannot be asked for
+again. So on iPhone the install has to come first. `NotificationSetting`
+detects this and shows the Add-to-Home-Screen instructions instead of a switch
+that would quietly do nothing.
+
+Subscriptions also expire silently after long inactivity, so the app
+re-validates its subscription on every launch rather than trusting the one the
+server has stored.
+
+**Every client shares one notification budget.** Push, SMS and email draw from
+the same weekly cap per client, in `src/lib/messaging/budget.ts`. Transactional
+messages — a reminder for a booking they made, a receipt, a failed card — are
+exempt; promotional ones compete for what is left. The reason is measured:
+transactional notifications open at roughly 69% against 3–5% for marketing,
+and people receiving more than six a week from one sender are markedly more
+likely to uninstall. Seven automations that each behave reasonably in isolation
+is exactly how someone ends up with nine messages in a week, so the cap lives
+in code rather than in each campaign's config.
+
+`campaigns.transactional` is what the budget reads, and migration 0013 seeds it
+from each campaign's trigger type.
+
 ### Checking it on a phone
 
 The shell is the part most worth looking at on real hardware. `npm run dev`,

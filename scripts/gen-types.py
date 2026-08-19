@@ -7,9 +7,15 @@ real Supabase project you can switch to the official generator instead:
 
     npm run db:types
 
-Usage:
-    psql "$DB_URL" -At -F'|' -f scripts/introspect.sql > cols.txt
-    python3 scripts/gen-types.py cols.txt enums.txt > src/types/database.ts
+Usage, against any Postgres with the migrations applied:
+
+    psql "$DB_URL" -At -f scripts/introspect.sql       > /tmp/cols.txt
+    psql "$DB_URL" -At -f scripts/introspect-enums.sql > /tmp/enums.txt
+    python3 scripts/gen-types.py /tmp/cols.txt /tmp/enums.txt > src/types/database.ts
+
+Functions are listed by hand below — Postgres argument introspection does not
+survive the round trip cleanly enough to be worth automating for a dozen of
+them. Add new ones there when you add a migration that defines one.
 """
 import sys, re
 from collections import OrderedDict
@@ -151,6 +157,10 @@ def main():
     out.append('      generate_referral_code: {')
     out.append('        Args: Record<string, never>;')
     out.append('        Returns: string;')
+    out.append('      };')
+    out.append('      promotional_sends_this_week: {')
+    out.append('        Args: { p_client_id: string };')
+    out.append('        Returns: number;')
     out.append('      };')
     out.append('    };')
 

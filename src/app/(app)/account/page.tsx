@@ -6,7 +6,8 @@ import { vertical } from '@/config/verticals';
 import { rules } from '@/config/rules';
 import { Card, CardHeader, CardBody, Badge, Button, Alert, EmptyState } from '@/components/ui';
 import { formatMoney, relativeDays, daysBetween } from '@/lib/utils';
-import { Screen } from '@/components/app';
+import { Screen, NotificationSetting } from '@/components/app';
+import { vapidPublicKey } from '@/lib/messaging/push';
 
 export const metadata = { title: `My ${vertical.visitNounPlural}` };
 export const dynamic = 'force-dynamic';
@@ -60,7 +61,15 @@ export default async function AccountPage() {
             description={`Book your first ${vertical.visitNoun} and it will show up here.`}
             action={<Link href="/book"><Button>{brand.copy.bookCta}</Button></Link>}
           />
-        </div></Screen>
+        </div>
+
+        {/* Outside the padded column: the setting draws its own inset
+            group, matching every other list on the account screen. */}
+        <NotificationSetting
+          vapidPublicKey={vapidPublicKey()}
+          visitNoun={vertical.visitNoun}
+        />
+      </Screen>
       </>
     );
   }

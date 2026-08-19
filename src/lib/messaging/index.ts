@@ -13,6 +13,7 @@
  */
 
 import type { MessageChannel } from '@/types/database';
+import { sendPushToClient } from './push';
 
 export interface SendRequest {
   channel: MessageChannel;
@@ -124,12 +125,41 @@ async function sendSms(req: SendRequest): Promise<SendResult> {
   }
 }
 
+
+// --- Push -------------------------------------------------------------------
+
+/**
+ * For push, `to` is the client id rather than an address: a person may have
+ * several devices subscribed, and the endpoints belong to the browser, not to
+ * anything the campaign engine knows about.
+ *
+ * A client with no subscription returns ok:false with `no_subscription`, which
+ * is how the caller knows to fall back to SMS. On iPhone that is the majority
+ * case until someone installs the app, so it is a routine outcome, not a
+ * failure worth alerting on.
+ */
+async function sendPush(req: SendRequest): Promise<SendResult> {
+  const result = await sendPushToClient(req.to, {
+    title: req.subject || 'Update',
+    body: req.body,
+    tag: req.idempotencyKey,
+  });
+
+  return {
+    ok: result.ok,
+    providerMessageId: null,
+    error: result.error,
+    simulated: result.simulated,
+  };
+}
+
 export async function send(req: SendRequest): Promise<SendResult> {
   switch (req.channel) {
     case 'email': return sendEmail(req);
     case 'sms': return sendSms(req);
+    case 'push': return sendPush(req);
     default:
-      // push / in_app are recorded but have no outbound provider yet.
+      // in_app is recorded and read from the account screen; nothing outbound.
       console.info(`[messaging] ${req.channel.toUpperCase()} (no adapter) to=${req.to}`);
       return { ok: true, providerMessageId: null, error: null, simulated: true };
   }
@@ -138,8 +168,15 @@ export async function send(req: SendRequest): Promise<SendResult> {
 export function messagingStatus(): {
   email: 'configured' | 'simulated';
   sms: 'configured' | 'simulated';
+  push: 'configured' | 'simulated';
 } {
   return {
+    push:
+      process.env.VAPID_PUBLIC_KEY &&
+      process.env.VAPID_PRIVATE_KEY &&
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+        ? 'configured'
+        : 'simulated',
     email:
       process.env.RESEND_API_KEY && process.env.EMAIL_FROM ? 'configured' : 'simulated',
     sms:

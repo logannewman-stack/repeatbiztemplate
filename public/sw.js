@@ -105,3 +105,85 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
+/* ============================================================================
+ * PUSH
+ * ==========================================================================*/
+
+self.addEventListener('push', (event) => {
+  // A push with no readable payload still has to show something: web push is
+  // granted on the promise that every message is user-visible, and browsers
+  // will show their own "site updated in background" notice otherwise.
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { body: event.data ? event.data.text() : '' };
+  }
+
+  const title = payload.title || 'Update';
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: payload.body || '',
+      icon: '/icons/icon-192.png',
+      // Android shows this small and monochrome in the status bar.
+      badge: '/icons/icon-192.png',
+      // Replaces an earlier notification with the same tag rather than
+      // stacking — two reminders for one appointment reads as a bug.
+      tag: payload.tag || 'general',
+      renotify: Boolean(payload.tag),
+      requireInteraction: Boolean(payload.requireInteraction),
+      data: { url: payload.url || '/' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const target = new URL(
+    (event.notification.data && event.notification.data.url) || '/',
+    self.location.origin
+  ).href;
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((windows) => {
+        // Reuse an open window where possible. Launching a second copy of an
+        // installed app is jarring and loses whatever the person was doing.
+        for (const client of windows) {
+          if ('focus' in client) {
+            client.navigate?.(target);
+            return client.focus();
+          }
+        }
+        return self.clients.openWindow(target);
+      })
+  );
+});
+
+// Fired when a subscription is rotated or invalidated by the push service.
+// Without this the app goes quiet and neither side knows why.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    self.registration.pushManager
+      .subscribe(event.oldSubscription?.options ?? { userVisibleOnly: true })
+      .then((subscription) =>
+        fetch('/api/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            p256dh: subscription.toJSON().keys.p256dh,
+            auth: subscription.toJSON().keys.auth,
+            replaces: event.oldSubscription?.endpoint,
+          }),
+        })
+      )
+      .catch(() => {
+        // Nothing useful to do from here. The app re-registers on next launch.
+      })
+  );
+});

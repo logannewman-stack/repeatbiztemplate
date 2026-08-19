@@ -21,7 +21,8 @@
     "stripe:listen": "stripe listen --forward-to localhost:3000/api/stripe/webhook",
     "setup": "node scripts/preflight.mjs",
     "preflight": "node scripts/preflight.mjs",
-    "icons": "node scripts/gen-icons.mjs"
+    "icons": "node scripts/gen-icons.mjs",
+    "vapid": "node scripts/gen-vapid.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -36,6 +37,7 @@
     "recharts": "^2.15.0",
     "stripe": "^17.5.0",
     "tailwind-merge": "^2.6.0",
+    "web-push": "^3.6.7",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -43,6 +45,7 @@
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.1.3",
     "tailwindcss": "^4.0.0",

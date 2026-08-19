@@ -264,6 +264,49 @@ if (isSet('STRIPE_SECRET_KEY')) {
   );
 }
 
+// --- Push --------------------------------------------------------------------
+
+const vapidPublic = env.VAPID_PUBLIC_KEY;
+const vapidPublicClient = env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+if (isSet('VAPID_PUBLIC_KEY') && isSet('VAPID_PRIVATE_KEY')) {
+  if (!isSet('NEXT_PUBLIC_VAPID_PUBLIC_KEY')) {
+    problems.push(
+      'NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing while the other VAPID keys are ' +
+      'set. The browser needs the public key to subscribe and can only read ' +
+      'NEXT_PUBLIC_ variables, so nobody will ever be able to turn ' +
+      'notifications on. Set it to the same value as VAPID_PUBLIC_KEY.'
+    );
+  } else if (vapidPublic !== vapidPublicClient) {
+    problems.push(
+      'NEXT_PUBLIC_VAPID_PUBLIC_KEY does not match VAPID_PUBLIC_KEY. Browsers ' +
+      'will subscribe under one key while the server signs with another, and ' +
+      'every push will be rejected as unauthorised.'
+    );
+  } else {
+    ok.push('Web Push (VAPID) configured');
+  }
+
+  if (!isSet('VAPID_SUBJECT')) {
+    warnings.push(
+      'VAPID_SUBJECT is not set. Push services require a contact address and ' +
+      'some reject sends without one. Use mailto:you@yourbusiness.com'
+    );
+  }
+} else if (isSet('NEXT_PUBLIC_VAPID_PUBLIC_KEY')) {
+  problems.push(
+    'NEXT_PUBLIC_VAPID_PUBLIC_KEY is set but VAPID_PRIVATE_KEY is not. The ' +
+    'app will ask clients to enable notifications and then be unable to send ' +
+    'any. Run npm run vapid and set all three.'
+  );
+} else {
+  warnings.push(
+    'Web Push is not configured. Reminders fall back to SMS. Run npm run ' +
+    'vapid to enable it — on iPhone this is also the only notification ' +
+    'channel available, and only for clients who install the app.'
+  );
+}
+
 // --- Messaging --------------------------------------------------------------
 
 const emailReady = isSet('RESEND_API_KEY') && isSet('EMAIL_FROM');

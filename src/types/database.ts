@@ -558,6 +558,7 @@ export interface Database {
           active: boolean;
           created_at: string;
           updated_at: string;
+          transactional: boolean;
         };
         Insert: {
           id?: string;
@@ -579,6 +580,7 @@ export interface Database {
           active?: boolean;
           created_at?: string;
           updated_at?: string;
+          transactional?: boolean;
         };
         Update: {
           id?: string;
@@ -600,6 +602,7 @@ export interface Database {
           active?: boolean;
           created_at?: string;
           updated_at?: string;
+          transactional?: boolean;
         };
         Relationships: [];
       };
@@ -1896,6 +1899,51 @@ export interface Database {
         };
         Relationships: [];
       };
+      push_subscriptions: {
+        Row: {
+          id: string;
+          business_id: string;
+          client_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent: string | null;
+          last_seen_at: string;
+          failure_count: number;
+          last_failed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          business_id: string;
+          client_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          user_agent?: string | null;
+          last_seen_at?: string;
+          failure_count?: number;
+          last_failed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          business_id?: string;
+          client_id?: string;
+          endpoint?: string;
+          p256dh?: string;
+          auth?: string;
+          user_agent?: string | null;
+          last_seen_at?: string;
+          failure_count?: number;
+          last_failed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       referrals: {
         Row: {
           id: string;
@@ -2693,6 +2741,10 @@ export interface Database {
       generate_referral_code: {
         Args: Record<string, never>;
         Returns: string;
+      };
+      promotional_sends_this_week: {
+        Args: { p_client_id: string };
+        Returns: number;
       };
     };
     Enums: {

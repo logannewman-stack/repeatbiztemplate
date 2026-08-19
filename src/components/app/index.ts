@@ -5,5 +5,7 @@ export { TabBar, type TabItem, type TabIconName } from './TabBar';
 export { ListGroup, ListRow, ListLink } from './List';
 export { Sheet } from './Sheet';
 export { InstallPrompt } from './InstallPrompt';
+export { NotificationSetting } from './NotificationSetting';
+export { usePush, type PushState, type PushStatus } from './push';
 export { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar';
 export { usePlatform, detectPlatform, haptic, type Platform } from './platform';
