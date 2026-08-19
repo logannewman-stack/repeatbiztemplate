@@ -242,14 +242,37 @@ export interface ReviewRules {
   /** Hours after a completed visit to request a review. */
   requestDelayHours: number;
   /**
-   * Ask for a private rating first. 4-5 stars → public review link.
-   * 1-3 stars → private feedback form routed to the owner. Protects the
-   * public rating and catches churn signals before they become churn.
+   * Screen clients with a private rating and only send high scorers to the
+   * public review link.
+   *
+   * DO NOT TURN THIS ON. It is review gating, and it is against policy on
+   * every platform that matters:
+   *
+   *   Google's Contributed Content Policy forbids selectively soliciting
+   *   positive reviews. Gated reviews get removed, and repeat violations can
+   *   suspend the Business Profile outright — Google now detects the pattern
+   *   automatically and has begun targeting the software that enables it.
+   *
+   *   In the US it is also an FTC matter. Fashion Nova paid $4.2m for
+   *   suppressing negative reviews.
+   *
+   * The flag exists because the behaviour is common enough that someone will
+   * look for it, and finding it documented here is better than finding it
+   * reimplemented badly. Leave it false.
+   *
+   * The compliant version of the same idea is `privateFeedbackUrl` below:
+   * ask everyone for a public review, and offer everyone a private channel
+   * too. What breaks the rule is conditioning the public ask on the score.
    */
   gateByRating: boolean;
   publicThreshold: number;
-  /** Where happy clients get sent. Replace per client build. */
+  /** Public review link — sent to every client, not a filtered subset. */
   publicReviewUrl: string;
+  /**
+   * Offered alongside the public link, to everyone. This is how an unhappy
+   * client reaches the owner directly without the ask being gated.
+   */
+  privateFeedbackUrl: string;
   /** Don't re-ask a client more often than this. */
   cooldownDays: number;
 }
@@ -415,9 +438,11 @@ export const rules: AllRules = {
   reviews: {
     enabled: true,
     requestDelayHours: 24,
-    gateByRating: true,
+    // Off, and it should stay off. See the note on the type above.
+    gateByRating: false,
     publicThreshold: 4,
     publicReviewUrl: 'https://example.test/review-us',
+    privateFeedbackUrl: 'https://example.test/feedback',
     cooldownDays: 90,
   },
 };
