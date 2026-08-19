@@ -30,6 +30,8 @@ export default async function AdminLayout({
     { href: '/admin/memberships', label: 'Memberships', icon: 'star' },
     { href: '/admin/campaigns', label: 'Campaigns', icon: 'mail' },
     { href: '/admin/reports', label: 'Reports', icon: 'chart' },
+    // The renewal screen: what changed since launch, and what it was worth.
+    { href: '/admin/impact', label: 'Impact', icon: 'chart' },
     { href: '/admin/setup', label: 'Setup', icon: 'sliders' },
   ];
 

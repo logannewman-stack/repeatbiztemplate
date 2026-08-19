@@ -2640,6 +2640,34 @@ export interface Database {
         };
         Relationships: [];
       };
+      v_impact: {
+        Row: {
+          business_id: string | null;
+          first_activity: string | null;
+          days_live: number | null;
+          lifetime_appointments: number | null;
+          comparable: boolean | null;
+          rebook_rate_baseline: number | null;
+          rebook_rate_current: number | null;
+          rebook_rate_delta: number | null;
+          no_show_rate_baseline: number | null;
+          no_show_rate_current: number | null;
+          no_show_rate_delta: number | null;
+          booked_current: number | null;
+          completed_current: number | null;
+          avg_ticket_cents: number | null;
+          avg_ticket_cents_baseline: number | null;
+          fees_recovered_cents: number | null;
+          mrr_cents_baseline: number | null;
+          mrr_cents_current: number | null;
+          mrr_cents_delta: number | null;
+          members_current: number | null;
+          rebooking_value_cents: number | null;
+          no_show_value_cents: number | null;
+          membership_value_cents: number | null;
+        };
+        Relationships: [];
+      };
       v_membership_movement: {
         Row: {
           business_id: string | null;
