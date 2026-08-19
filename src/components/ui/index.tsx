@@ -94,7 +94,9 @@ export function Card({
     <div
       className={cn(
         'rounded-[var(--radius-card)] border border-[var(--color-border)]',
-        'bg-[var(--color-surface)]',
+        // Elevation, not just a border. A surface that sits on the page rather
+        // than above it is what makes a UI read as unfinished.
+        'bg-[var(--color-surface)] shadow-[var(--shadow-md)]',
         className
       )}
       {...props}

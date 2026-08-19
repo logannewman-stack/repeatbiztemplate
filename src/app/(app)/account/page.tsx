@@ -32,8 +32,7 @@ export default async function AccountPage() {
   if (!user) {
     return (
       <>
-        <Screen title={'Account'}><div className="px-4">
-          <h1 className="text-2xl font-bold">Sign in</h1>
+        <Screen title={'Sign in'}><div className="px-4">
           <p className="mt-2 text-[var(--color-muted)]">
             We&apos;ll email you a link — no password to remember.
           </p>

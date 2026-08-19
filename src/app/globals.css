@@ -9,18 +9,30 @@
    ========================================================================== */
 
 @theme {
-  --color-brand: oklch(0.52 0.13 250);
-  --color-brand-fg: oklch(0.99 0 0);
-  --color-brand-soft: oklch(0.95 0.02 250);
-  --color-accent: oklch(0.70 0.15 45);
-  --color-accent-fg: oklch(0.20 0.02 45);
+  /* Deep eucalyptus rather than corporate blue. These businesses sell
+     aesthetics; the default palette has to look like it was chosen. */
+  --color-brand: oklch(0.42 0.062 168);
+  --color-brand-fg: oklch(0.99 0.004 90);
+  --color-brand-soft: oklch(0.945 0.018 168);
+  --color-accent: oklch(0.70 0.098 76);
+  --color-accent-fg: oklch(0.24 0.03 76);
 
-  --color-bg: oklch(0.99 0.002 250);
+  /* Warm neutrals. A blue-grey ground reads clinical; these read like paper. */
+  --color-bg: oklch(0.982 0.004 84);
   --color-surface: oklch(1 0 0);
-  --color-surface-2: oklch(0.975 0.003 250);
-  --color-fg: oklch(0.22 0.015 250);
-  --color-muted: oklch(0.55 0.012 250);
-  --color-border: oklch(0.91 0.005 250);
+  --color-surface-2: oklch(0.962 0.006 84);
+  --color-fg: oklch(0.215 0.010 62);
+  --color-muted: oklch(0.535 0.011 66);
+  --color-border: oklch(0.905 0.006 74);
+
+  /* Elevation. Flat cards on a flat ground is the strongest "unfinished"
+     signal there is — native surfaces sit above the page rather than sharing
+     its plane. Warm-tinted so shadows do not grey out the ground. */
+  --shadow-sm: 0 1px 2px oklch(0.22 0.01 62 / 0.05);
+  --shadow-md: 0 1px 2px oklch(0.22 0.01 62 / 0.04),
+               0 6px 16px -8px oklch(0.22 0.01 62 / 0.10);
+  --shadow-lg: 0 1px 2px oklch(0.22 0.01 62 / 0.04),
+               0 12px 32px -12px oklch(0.22 0.01 62 / 0.16);
 
   --color-success: oklch(0.62 0.13 155);
   --color-success-soft: oklch(0.95 0.03 155);
@@ -31,36 +43,42 @@
 
   --radius-card: 0.75rem;
 
-  --font-heading: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-heading: var(--font-display), "Iowan Old Style", Georgia, serif;
+  --font-body: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-bg: oklch(0.17 0.012 250);
-    --color-surface: oklch(0.21 0.014 250);
-    --color-surface-2: oklch(0.25 0.014 250);
-    --color-fg: oklch(0.95 0.005 250);
-    --color-muted: oklch(0.68 0.012 250);
-    --color-border: oklch(0.30 0.014 250);
-    --color-brand-soft: oklch(0.28 0.04 250);
+    --color-bg: oklch(0.165 0.008 72);
+    --color-surface: oklch(0.208 0.010 72);
+    --color-surface-2: oklch(0.248 0.011 72);
+    --color-fg: oklch(0.955 0.004 84);
+    --color-muted: oklch(0.665 0.010 72);
+    --color-border: oklch(0.295 0.011 72);
+    --color-brand-soft: oklch(0.27 0.035 168);
     --color-success-soft: oklch(0.26 0.04 155);
     --color-warning-soft: oklch(0.28 0.05 75);
     --color-danger-soft: oklch(0.27 0.05 25);
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
+    --shadow-md: 0 1px 2px oklch(0 0 0 / 0.4), 0 6px 16px -8px oklch(0 0 0 / 0.6);
+    --shadow-lg: 0 1px 2px oklch(0 0 0 / 0.4), 0 12px 32px -12px oklch(0 0 0 / 0.7);
   }
 }
 
 :root[data-theme="dark"] {
-  --color-bg: oklch(0.17 0.012 250);
-  --color-surface: oklch(0.21 0.014 250);
-  --color-surface-2: oklch(0.25 0.014 250);
-  --color-fg: oklch(0.95 0.005 250);
-  --color-muted: oklch(0.68 0.012 250);
-  --color-border: oklch(0.30 0.014 250);
-  --color-brand-soft: oklch(0.28 0.04 250);
+  --color-bg: oklch(0.165 0.008 72);
+  --color-surface: oklch(0.208 0.010 72);
+  --color-surface-2: oklch(0.248 0.011 72);
+  --color-fg: oklch(0.955 0.004 84);
+  --color-muted: oklch(0.665 0.010 72);
+  --color-border: oklch(0.295 0.011 72);
+  --color-brand-soft: oklch(0.27 0.035 168);
   --color-success-soft: oklch(0.26 0.04 155);
   --color-warning-soft: oklch(0.28 0.05 75);
   --color-danger-soft: oklch(0.27 0.05 25);
+    --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
+    --shadow-md: 0 1px 2px oklch(0 0 0 / 0.4), 0 6px 16px -8px oklch(0 0 0 / 0.6);
+    --shadow-lg: 0 1px 2px oklch(0 0 0 / 0.4), 0 12px 32px -12px oklch(0 0 0 / 0.7);
 }
 
 /* ========================================================================== */

@@ -21,13 +21,10 @@ export default function PoliciesPage() {
 
   return (
     <>
-      <Screen title={'Policies'}><div className="px-4">
-        <h1 className="text-3xl font-bold">Booking policies</h1>
-        <p className="mt-2 text-[var(--color-muted)]">
-          These are the rules the booking system actually enforces. They are
-          generated from the same configuration the software runs on, so they
-          cannot drift out of date.
-        </p>
+      <Screen
+        title={'Booking policies'}
+        subtitle="The rules the booking system actually enforces, generated from the same configuration the software runs on — so they cannot drift out of date."
+      ><div className="px-4">
 
         <Alert tone="warning" title="Template placeholder">
           <p className="mt-1">

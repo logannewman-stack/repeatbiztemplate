@@ -225,3 +225,80 @@ export function derivePalette(brandHex: string): BrandConfig['colors'] {
     danger: 'oklch(0.58 0.19 25)',
   };
 }
+
+/**
+ * Parse an `oklch(L C H)` string into its three numbers.
+ * Returns null for anything else — a hex or a named colour is valid config,
+ * it just cannot be tone-mapped, so the caller falls back to using it as-is.
+ */
+function parseOklch(value: string): [number, number, number] | null {
+  const match = value.match(
+    /oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)/i
+  );
+  if (!match) return null;
+
+  const lightness = match[1].endsWith('%')
+    ? Number(match[1].slice(0, -1)) / 100
+    : Number(match[1]);
+
+  return [lightness, Number(match[2]), Number(match[3])];
+}
+
+/**
+ * A brand colour chosen to sit behind white text in light mode is usually too
+ * dark to read against a dark background. Lift it, and flip the text that goes
+ * on top of it.
+ */
+function forDark(value: string): string {
+  const parsed = parseOklch(value);
+  if (!parsed) return value;
+
+  const [lightness, chroma, hue] = parsed;
+  // Already light enough to work on a dark ground.
+  if (lightness >= 0.62) return value;
+
+  return `oklch(${Math.min(0.78, lightness + 0.3).toFixed(3)} ${(chroma * 0.9).toFixed(3)} ${hue})`;
+}
+
+/**
+ * The brand palette as a stylesheet rather than an inline style attribute.
+ *
+ * This exists because an inline style on <body> wins over every rule in the
+ * cascade, including the dark-mode ones — so a brand colour set that way is
+ * frozen at its light-mode value and an accessible dark theme is impossible.
+ * Emitting real CSS lets the media query do its job.
+ */
+export function brandStyleSheet(b: ResolvedBrand): string {
+  const light: Record<string, string> = {
+    '--color-brand': b.colors.brand,
+    '--color-brand-fg': b.colors.brandForeground,
+    '--color-accent': b.colors.accent,
+    '--color-accent-fg': b.colors.accentForeground,
+    '--color-success': b.colors.success,
+    '--color-warning': b.colors.warning,
+    '--color-danger': b.colors.danger,
+    '--radius-card': radiusScale[b.radius] ?? '0.75rem',
+    '--font-heading': b.fonts.heading,
+    '--font-body': b.fonts.body,
+  };
+
+  const darkBrand = forDark(b.colors.brand);
+  const dark: Record<string, string> = {
+    '--color-brand': darkBrand,
+    // If the brand lifted, what sits on it has to darken to stay legible.
+    '--color-brand-fg':
+      darkBrand === b.colors.brand ? b.colors.brandForeground : 'oklch(0.16 0.02 168)',
+    '--color-accent': forDark(b.colors.accent),
+  };
+
+  const declare = (vars: Record<string, string>) =>
+    Object.entries(vars)
+      .map(([key, value]) => `${key}:${value}`)
+      .join(';');
+
+  return (
+    `:root{${declare(light)}}` +
+    `@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){${declare(dark)}}}` +
+    `:root[data-theme="dark"]{${declare(dark)}}`
+  );
+}

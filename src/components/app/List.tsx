@@ -28,12 +28,12 @@ export function ListGroup({
   return (
     <section className={cn('px-4 py-2', className)}>
       {header && (
-        <h3 className="px-1 pb-1.5 text-[13px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
+        <h3 className="px-1 pb-1.5 font-[family-name:var(--font-body)] text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
           {header}
         </h3>
       )}
 
-      <div className="overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)]">
+      <div className="overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]">
         {/* The inset separator: it starts at the text, not the card edge. */}
         <div className="divide-y divide-[var(--color-border)] [&>*+*]:border-t-0">
           {children}
@@ -52,6 +52,12 @@ export function ListGroup({
 interface RowContent {
   /** Leading glyph or avatar. */
   icon?: React.ReactNode;
+  /**
+   * Leading thumbnail. Falls back to a tinted monogram tile when there is no
+   * image, which is the usual case on a fresh install — an empty square would
+   * read as a broken image, a monogram reads as deliberate.
+   */
+  media?: { src?: string | null; label: string };
   label: React.ReactNode;
   /** Second line, muted. */
   detail?: React.ReactNode;
@@ -60,9 +66,35 @@ interface RowContent {
   className?: string;
 }
 
-function RowInner({ icon, label, detail, value, chevron }: RowContent & { chevron?: boolean }) {
+function RowInner({ icon, media, label, detail, value, chevron }: RowContent & { chevron?: boolean }) {
   return (
     <>
+      {media && (
+        media.src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={media.src}
+            alt=""
+            className="size-11 shrink-0 rounded-[0.6rem] object-cover"
+          />
+        ) : (
+          // A uniform glyph on a tint derived from the name. Initials collide
+          // constantly in a service menu — three rows reading "S" looks
+          // broken, whereas three tints read as a considered palette.
+          <span
+            aria-hidden
+            className="flex size-11 shrink-0 items-center justify-center rounded-[0.6rem]"
+            style={tintFor(media.label)}
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"
+              strokeLinejoin="round">
+              <path d="M12 3.6 13.5 9l5.4 1.6-5.4 1.6L12 17.6l-1.5-5.4L5.1 10.6 10.5 9z" />
+            </svg>
+          </span>
+        )
+      )}
+
       {icon && (
         <span className="flex size-7 shrink-0 items-center justify-center text-[var(--color-brand)]">
           {icon}
@@ -96,6 +128,20 @@ function RowInner({ icon, label, detail, value, chevron }: RowContent & { chevro
       )}
     </>
   );
+}
+
+/**
+ * A stable, low-chroma tint per label. Deterministic so a service keeps the
+ * same colour between renders, and desaturated so a menu of them still reads
+ * as one palette rather than a bag of highlighters.
+ */
+function tintFor(label: string): React.CSSProperties {
+  let hash = 7;
+  for (const char of label) hash = (hash * 31 + char.charCodeAt(0)) % 360;
+  return {
+    background: `oklch(0.945 0.035 ${hash})`,
+    color: `oklch(0.45 0.085 ${hash})`,
+  };
 }
 
 const ROW = 'flex w-full items-center gap-3 px-4 py-3 text-left';

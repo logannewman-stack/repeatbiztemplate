@@ -113,15 +113,18 @@ export const brand: BrandConfig = {
   },
 
   colors: {
-    brand: 'oklch(0.52 0.13 250)',
-    brandForeground: 'oklch(0.99 0 0)',
-    accent: 'oklch(0.70 0.15 45)',
-    accentForeground: 'oklch(0.20 0.02 45)',
-    background: 'oklch(0.99 0.002 250)',
+    // Deep eucalyptus and warm gold. Chosen to look considered out of the box
+    // for a salon or med spa — swap per client, but do not swap back to a
+    // default blue, which reads like software rather than a place you visit.
+    brand: 'oklch(0.42 0.062 168)',
+    brandForeground: 'oklch(0.99 0.004 90)',
+    accent: 'oklch(0.70 0.098 76)',
+    accentForeground: 'oklch(0.24 0.03 76)',
+    background: 'oklch(0.982 0.004 84)',
     surface: 'oklch(1 0 0)',
-    foreground: 'oklch(0.22 0.015 250)',
-    muted: 'oklch(0.55 0.012 250)',
-    border: 'oklch(0.91 0.005 250)',
+    foreground: 'oklch(0.215 0.010 62)',
+    muted: 'oklch(0.535 0.011 66)',
+    border: 'oklch(0.905 0.006 74)',
     success: 'oklch(0.62 0.13 155)',
     warning: 'oklch(0.75 0.14 75)',
     danger: 'oklch(0.58 0.19 25)',
@@ -130,8 +133,11 @@ export const brand: BrandConfig = {
   radius: 'soft',
 
   fonts: {
-    heading: '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif',
-    body: '"Inter", system-ui, -apple-system, "Segoe UI", sans-serif',
+    // A serif display against a warm sans is what separates a booking app that
+    // looks designed from one that looks generated. Swap per client; keep the
+    // pairing principle.
+    heading: 'var(--font-display), "Iowan Old Style", Georgia, serif',
+    body: 'var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif',
   },
 
   assets: {

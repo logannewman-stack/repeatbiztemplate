@@ -1,8 +1,28 @@
 import type { Metadata, Viewport } from 'next';
-import { loadBrand, brandCssVars } from '@/lib/brand';
+import { Instrument_Serif, Plus_Jakarta_Sans } from 'next/font/google';
+import { loadBrand, brandStyleSheet } from '@/lib/brand';
 import { ServiceWorkerRegistrar } from '@/components/app';
 import { resolveAppUrl } from '@/lib/url';
 import './globals.css';
+
+/**
+ * Instrument Serif carries the large titles; Plus Jakarta Sans is warmer than
+ * Inter at body sizes. Swapping these per client means editing here and in
+ * src/config/brand.ts together — the CSS variables below are what the rest of
+ * the app reads.
+ */
+const display = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  variable: '--font-display',
+  display: 'swap',
+});
+
+const body = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+  display: 'swap',
+});
 
 /**
  * Metadata resolves per request from the database, so a client who renames
@@ -66,8 +86,12 @@ export default async function RootLayout({
   const { brand } = await loadBrand();
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body style={brandCssVars(brand)}>
+    <html lang="en" suppressHydrationWarning className={`${display.variable} ${body.variable}`}>
+      {/* A stylesheet, not a style attribute: inline styles outrank every
+          media query, which would freeze the brand colour at its light-mode
+          value and make an accessible dark theme impossible. */}
+      <style dangerouslySetInnerHTML={{ __html: brandStyleSheet(brand) }} />
+      <body>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-[var(--color-brand)] focus:px-4 focus:py-2 focus:text-[var(--color-brand-fg)]"

@@ -16,11 +16,10 @@ export default function GiftCardsPage() {
 
   return (
     <>
-      <Screen title={'Gift Cards'}><div className="px-4">
-        <h1 className="text-3xl font-bold">Gift cards</h1>
-        <p className="mt-2 text-[var(--color-muted)]">
-          Redeemable against any service or product. They never expire.
-        </p>
+      <Screen
+        title={'Gift cards'}
+        subtitle="Redeemable against any service or product. They never expire."
+      ><div className="px-4">
 
         {!canSell && (
           <Alert tone="warning" title="Payments not configured">

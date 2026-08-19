@@ -109,58 +109,70 @@ export default async function HomePage() {
   return (
     <Screen title={brand.name} subtitle={brand.tagline}>
       {!live && (
-        <div className="px-4 pb-1 pt-2">
-          <div className="rounded-[var(--radius-card)] bg-[var(--color-warning-soft)] px-4 py-3 text-[13px] leading-snug">
-            <strong>Demo mode.</strong> Showing the {vertical.label} preset.
-            Connect Supabase and use{' '}
-            <Link href="/admin/setup" className="underline">Setup</Link> to make
-            this a real business.
-          </div>
+        <div className="px-4 pb-1 pt-1">
+          <Link
+            href="/admin/setup"
+            className="flex items-center gap-2 rounded-full bg-[var(--color-warning-soft)] px-3 py-1.5 text-[12px] leading-none"
+            data-compact-target
+          >
+            <span className="size-1.5 shrink-0 rounded-full bg-[var(--color-warning)]" />
+            <span className="min-w-0 flex-1 truncate">
+              Demo mode &middot; {vertical.label} preset
+            </span>
+            <span className="shrink-0 font-medium opacity-70">Set up →</span>
+          </Link>
         </div>
       )}
 
-      {/* --- Primary actions ---------------------------------------------
-          An app opens to what you came to do. The two things a returning
-          client wants are a booking and a phone number, so they are the first
-          thing under the title rather than the last thing under a hero. */}
-      <div className="grid grid-cols-2 gap-3 px-4 py-3">
+      {/* --- Primary action ------------------------------------------------
+          One unmistakable next step, then small shortcuts. The previous
+          two-tile grid pushed icon and label to opposite ends of a tall box
+          and left a hole in the middle of both. */}
+      <div className="px-4 py-2">
         <Link
           href="/book"
           data-press
-          className="flex flex-col justify-between rounded-[var(--radius-card)] bg-[var(--color-brand)] p-4 text-[var(--color-brand-fg)]"
+          className="flex items-center gap-3.5 rounded-[var(--radius-card)] bg-[var(--color-brand)] px-4 py-3.5 text-[var(--color-brand-fg)] shadow-[var(--shadow-lg)]"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden
-            fill="none" stroke="currentColor" strokeWidth={1.9}
-            strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3.2" y="5" width="17.6" height="16" rx="3" />
-            <path d="M8 3v4M16 3v4M3.6 10.2h16.8" />
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-[0.7rem] bg-white/15">
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden
+              fill="none" stroke="currentColor" strokeWidth={1.9}
+              strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3.2" y="5" width="17.6" height="16" rx="3" />
+              <path d="M8 3v4M16 3v4M3.6 10.2h16.8" />
+            </svg>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[17px] font-semibold leading-tight">
+              {brand.copy.bookCta}
+            </span>
+            <span className="mt-0.5 block text-[13px] leading-snug opacity-75">
+              Pick a time in under a minute
+            </span>
+          </span>
+          <svg width="8" height="14" viewBox="0 0 8 14" aria-hidden
+            className="shrink-0 opacity-60" fill="none" stroke="currentColor"
+            strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1.2 1.2 6.6 7l-5.4 5.8" />
           </svg>
-          <span className="mt-6 block text-[17px] font-semibold leading-tight">
-            {brand.copy.bookCta}
-          </span>
-          <span className="mt-0.5 block text-[13px] opacity-80">
-            Pick a time in under a minute
-          </span>
         </Link>
 
-        <a
-          href={`tel:${brand.contact.phone.replace(/\D/g, '')}`}
-          data-press
-          className="flex flex-col justify-between rounded-[var(--radius-card)] bg-[var(--color-surface)] p-4"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden
-            className="text-[var(--color-brand)]"
-            fill="none" stroke="currentColor" strokeWidth={1.9}
-            strokeLinecap="round" strokeLinejoin="round">
+        <div className="mt-2.5 grid grid-cols-3 gap-2.5">
+          <QuickAction
+            href={`tel:${brand.contact.phone.replace(/\D/g, '')}`}
+            label="Call"
+            external
+          >
             <path d="M4.5 4h3.2l1.6 4-2 1.4a12.5 12.5 0 0 0 5.3 5.3l1.4-2 4 1.6v3.2a1.5 1.5 0 0 1-1.6 1.5A15.5 15.5 0 0 1 3 5.6 1.5 1.5 0 0 1 4.5 4z" />
-          </svg>
-          <span className="mt-6 block text-[17px] font-semibold leading-tight">
-            Call us
-          </span>
-          <span className="mt-0.5 block text-[13px] text-[var(--color-muted)]">
-            {brand.contact.phone}
-          </span>
-        </a>
+          </QuickAction>
+          <QuickAction href="/memberships" label={brand.copy.membershipName}>
+            <path d="M12 3.2 13.7 9l5.8 1.7-5.8 1.7L12 18.2l-1.7-5.8L4.5 10.7 10.3 9z" />
+          </QuickAction>
+          <QuickAction href="/account" label={capitalise(vertical.visitNounPlural)}>
+            <rect x="3.2" y="5" width="17.6" height="16" rx="3" />
+            <path d="M8 3v4M16 3v4M3.6 10.2h16.8" />
+          </QuickAction>
+        </div>
       </div>
 
       {/* --- Services -----------------------------------------------------
@@ -176,6 +188,7 @@ export default async function HomePage() {
               <ListLink
                 key={service.id}
                 href={`/book?service=${service.id}`}
+                media={{ src: null, label: service.name }}
                 label={service.name}
                 detail={
                   formatDuration(service.durationMin + service.processingMin)
@@ -231,7 +244,7 @@ export default async function HomePage() {
           Horizontally scrolled, the way a native app shows a short roster. */}
       {staff.length > 0 && (
         <section className="py-2">
-          <h3 className="px-5 pb-1.5 text-[13px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
+          <h3 className="px-5 pb-1.5 font-[family-name:var(--font-body)] text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
             Our {vertical.providerNounPlural}
           </h3>
           <div className="scroll-x flex gap-3 px-4 pb-1">
@@ -294,5 +307,42 @@ export default async function HomePage() {
         )}
       </ListGroup>
     </Screen>
+  );
+}
+
+function capitalise(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+/** A small square shortcut. Icon over label, nothing else. */
+function QuickAction({
+  href, label, external, children,
+}: {
+  href: string;
+  label: string;
+  external?: boolean;
+  children: React.ReactNode;
+}) {
+  const className =
+    'flex flex-col items-center justify-center gap-1.5 rounded-[var(--radius-card)] ' +
+    'bg-[var(--color-surface)] px-2 py-3 shadow-[var(--shadow-sm)]';
+
+  const inner = (
+    <>
+      <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
+        className="text-[var(--color-brand)]" fill="none" stroke="currentColor"
+        strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        {children}
+      </svg>
+      <span className="w-full truncate text-center text-[12px] font-medium leading-none">
+        {label}
+      </span>
+    </>
+  );
+
+  return external ? (
+    <a href={href} data-press className={className}>{inner}</a>
+  ) : (
+    <Link href={href} data-press className={className}>{inner}</Link>
   );
 }

@@ -37,7 +37,7 @@ export function NotificationSetting({
 
   return (
     <section className="px-4 py-2">
-      <h3 className="px-1 pb-1.5 text-[13px] font-medium uppercase tracking-wide text-[var(--color-muted)]">
+      <h3 className="px-1 pb-1.5 font-[family-name:var(--font-body)] text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
         Notifications
       </h3>
 

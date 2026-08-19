@@ -19,17 +19,11 @@ export default function MembershipsPage() {
 
   return (
     <>
-      <Screen title={`${brand.copy.membershipName}s`}><div>
-        <section className="mx-auto max-w-4xl px-4 py-12 text-center">
-          <h1 className="text-3xl font-bold md:text-4xl">
-            {brand.copy.membershipName}s
-          </h1>
-          <p className="mx-auto mt-3 max-w-prose text-lg text-[var(--color-muted)]">
-            {brand.copy.membershipPitch}
-          </p>
-        </section>
-
-        <section className="mx-auto grid max-w-4xl gap-4 px-4 md:grid-cols-2">
+      <Screen
+        title={`${brand.copy.membershipName}s`}
+        subtitle={brand.copy.membershipPitch}
+      ><div>
+        <section className="grid gap-3 px-4 pt-1">
           {plans.map((plan, i) => {
             // The comparison that sells: what the same visits cost à la carte.
             const alaCarte = plan.included_credits * typicalPrice;
