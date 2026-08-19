@@ -135,7 +135,7 @@ function RowInner({ icon, media, label, detail, value, chevron }: RowContent & {
  * same colour between renders, and desaturated so a menu of them still reads
  * as one palette rather than a bag of highlighters.
  */
-function tintFor(label: string): React.CSSProperties {
+export function tintFor(label: string): React.CSSProperties {
   let hash = 7;
   for (const char of label) hash = (hash * 31 + char.charCodeAt(0)) % 360;
   return {

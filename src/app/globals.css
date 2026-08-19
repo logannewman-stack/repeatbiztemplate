@@ -99,10 +99,17 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-h1, h2, h3, h4 {
-  font-family: var(--font-heading);
-  letter-spacing: -0.015em;
-  text-wrap: balance;
+/* Layered deliberately. Unlayered CSS outranks every cascade layer, so an
+   unlayered element rule here silently beats Tailwind's font utilities — a
+   `font-[...]` class on a heading would do nothing at all. Inside @layer base
+   the utilities win, which is what lets a small uppercase label opt out of the
+   display serif. */
+@layer base {
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
 }
 
 /* Inputs must be at least 16px on iOS or Safari zooms the page on focus —

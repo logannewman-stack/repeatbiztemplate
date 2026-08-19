@@ -22,6 +22,7 @@ import { Button, Card, Badge, Input, Field, Alert } from '@/components/ui';
 import { formatMoney, formatDuration, cn } from '@/lib/utils';
 import type { DemoService, DemoAddon, DemoStaff } from '@/lib/demo';
 import { DatePicker } from '@/components/booking/DatePicker';
+import { tintFor } from '@/components/app';
 
 type Step = 'service' | 'provider' | 'time' | 'extras' | 'details' | 'done';
 
@@ -218,28 +219,59 @@ export function BookingFlow(props: BookingFlowProps) {
       {/* --- Step 1: service -------------------------------------------- */}
       {step === 'service' && (
         <section aria-labelledby="step-service">
-          <h2 id="step-service" className="text-xl font-semibold">
+          <h2 id="step-service" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">
             What are you booking?
           </h2>
-          <div className="mt-4 space-y-2">
-            {props.services.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => { setServiceId(s.id); setStep('provider'); }}
-                className="flex w-full items-start justify-between gap-4 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-left transition-colors hover:border-[var(--color-brand)]"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium">{s.name}</p>
-                  <p className="mt-0.5 text-sm text-[var(--color-muted)]">
-                    {formatDuration(s.duration_min)}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--color-muted)]">{s.description}</p>
-                </div>
-                <span className="shrink-0 font-semibold tabular-nums">
-                  {s.price_cents === 0 ? 'Free' : formatMoney(s.price_cents, props.currency)}
-                </span>
-              </button>
-            ))}
+
+          {/* One grouped card rather than a stack of tall ones. A real salon
+              menu runs to twenty services; at the old density two filled the
+              screen and the description outweighed the price. */}
+          <div className="mt-3 overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]">
+            <div className="divide-y divide-[var(--color-border)]">
+              {props.services.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => { setServiceId(s.id); setStep('provider'); }}
+                  data-press="row"
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-[var(--color-surface-2)]"
+                >
+                  <span
+                    aria-hidden
+                    className="flex size-11 shrink-0 items-center justify-center rounded-[0.6rem]"
+                    style={tintFor(s.name)}
+                  >
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"
+                      strokeLinejoin="round">
+                      <path d="M12 3.6 13.5 9l5.4 1.6-5.4 1.6L12 17.6l-1.5-5.4L5.1 10.6 10.5 9z" />
+                    </svg>
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[17px] leading-tight">{s.name}</span>
+                    <span className="mt-0.5 block text-[13px] text-[var(--color-muted)]">
+                      {formatDuration(s.duration_min)}
+                    </span>
+                    {s.description && (
+                      <span className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-[var(--color-muted)]">
+                        {s.description}
+                      </span>
+                    )}
+                  </span>
+
+                  <span className="shrink-0 text-[17px] font-semibold tabular-nums">
+                    {s.price_cents === 0 ? 'Free' : formatMoney(s.price_cents, props.currency)}
+                  </span>
+
+                  <svg width="8" height="14" viewBox="0 0 8 14" aria-hidden
+                    className="shrink-0 text-[var(--color-muted)] opacity-60"
+                    fill="none" stroke="currentColor" strokeWidth={2}
+                    strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1.2 1.2 6.6 7l-5.4 5.8" />
+                  </svg>
+                </button>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -247,7 +279,7 @@ export function BookingFlow(props: BookingFlowProps) {
       {/* --- Step 2: provider -------------------------------------------- */}
       {step === 'provider' && service && (
         <section aria-labelledby="step-provider">
-          <h2 id="step-provider" className="text-xl font-semibold">
+          <h2 id="step-provider" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">
             Who would you like to see?
           </h2>
           <div className="mt-4 space-y-2">
@@ -301,7 +333,7 @@ export function BookingFlow(props: BookingFlowProps) {
       {/* --- Step 3: time ------------------------------------------------- */}
       {step === 'time' && service && (
         <section aria-labelledby="step-time">
-          <h2 id="step-time" className="text-xl font-semibold">Pick a time</h2>
+          <h2 id="step-time" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">Pick a time</h2>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
             {formatDuration(duration)}
             {staffId && ` · ${props.staff.find((s) => s.id === staffId)?.display_name}`}
@@ -381,7 +413,7 @@ export function BookingFlow(props: BookingFlowProps) {
       {/* --- Step 4: add-ons ---------------------------------------------- */}
       {step === 'extras' && service && (
         <section aria-labelledby="step-extras">
-          <h2 id="step-extras" className="text-xl font-semibold">
+          <h2 id="step-extras" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">
             Anything to add?
           </h2>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
@@ -453,7 +485,7 @@ export function BookingFlow(props: BookingFlowProps) {
       {/* --- Step 5: details ---------------------------------------------- */}
       {step === 'details' && service && slot && (
         <section aria-labelledby="step-details">
-          <h2 id="step-details" className="text-xl font-semibold">Your details</h2>
+          <h2 id="step-details" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">Your details</h2>
 
           <form
             className="mt-4 space-y-4"
@@ -571,27 +603,29 @@ export function BookingFlow(props: BookingFlowProps) {
 
 function Progress({ current }: { current: number }) {
   const labels = ['Service', 'Provider', 'Time', 'Extras', 'Details'];
+
   return (
-    <ol className="mb-6 flex items-center gap-1" aria-label="Booking progress">
-      {labels.map((label, i) => (
-        <li key={label} className="flex flex-1 flex-col gap-1.5">
-          <span
+    <div className="mb-5" aria-label="Booking progress">
+      <ol className="flex items-center gap-1">
+        {labels.map((label, i) => (
+          <li
+            key={label}
             className={cn(
-              'h-1 rounded-full transition-colors',
+              'h-1 flex-1 rounded-full transition-colors',
               i <= current ? 'bg-[var(--color-brand)]' : 'bg-[var(--color-border)]'
             )}
           />
-          <span
-            className={cn(
-              'hidden text-xs sm:block',
-              i === current ? 'font-medium text-[var(--color-fg)]' : 'text-[var(--color-muted)]'
-            )}
-          >
-            {label}
-          </span>
-        </li>
-      ))}
-    </ol>
+        ))}
+      </ol>
+
+      {/* The labels used to be hidden below the sm breakpoint, which on a
+          phone — where almost all of this traffic is — left five anonymous
+          bars and no sense of how much was left. */}
+      <p className="mt-2 font-[family-name:var(--font-body)] text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
+        Step {current + 1} of {labels.length}
+        <span className="text-[var(--color-brand)]"> &middot; {labels[current]}</span>
+      </p>
+    </div>
   );
 }
 

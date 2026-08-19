@@ -2,7 +2,7 @@ export { AppShell } from './AppShell';
 export { AppFrame } from './AppFrame';
 export { Screen } from './Screen';
 export { TabBar, type TabItem, type TabIconName } from './TabBar';
-export { ListGroup, ListRow, ListLink } from './List';
+export { ListGroup, ListRow, ListLink, tintFor } from './List';
 export { Sheet } from './Sheet';
 export { NextVisitCard } from './NextVisitCard';
 export { PullToRefresh } from './PullToRefresh';
