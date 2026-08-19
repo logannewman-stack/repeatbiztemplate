@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * ============================================================================
  * APP FRAME
@@ -16,6 +18,7 @@
 
 import * as React from 'react';
 import { TabBar, type TabItem } from './TabBar';
+import { PullToRefresh } from './PullToRefresh';
 
 export function AppFrame({
   children, tabs,
@@ -23,9 +26,15 @@ export function AppFrame({
   children: React.ReactNode;
   tabs: TabItem[];
 }) {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
   return (
     <div className="app-frame">
-      <div className="app-scroll">{children}</div>
+      {/* `relative` so the refresh indicator positions against the scrolling
+          region rather than the viewport. */}
+      <div ref={scrollRef} className="app-scroll relative">
+        <PullToRefresh scrollRef={scrollRef}>{children}</PullToRefresh>
+      </div>
       <TabBar tabs={tabs} />
     </div>
   );

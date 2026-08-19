@@ -6,8 +6,9 @@ import {
   demoServices, demoStaff, demoPlans, isSupabaseConfigured,
 } from '@/lib/demo';
 import { loadCatalog } from '@/lib/booking/queries';
-import { formatMoney, formatDuration } from '@/lib/utils';
-import { Screen, ListGroup, ListLink } from '@/components/app';
+import { formatMoney, formatDuration, cn } from '@/lib/utils';
+import { Screen, ListGroup, ListLink, NextVisitCard } from '@/components/app';
+import { loadNextVisit, type NextVisit } from '@/lib/booking/next-visit';
 
 export const revalidate = 60;
 
@@ -42,7 +43,8 @@ interface DisplayPlan {
 }
 
 export default async function HomePage() {
-  const { brand, businessId, currency } = await loadBrand();
+  const { brand, businessId, currency, timezone } = await loadBrand();
+  const nextVisit = await loadNextVisit();
   const live = isSupabaseConfigured() && Boolean(businessId);
 
   let services: DisplayService[] = demoServices().map((s) => ({
@@ -106,6 +108,26 @@ export default async function HomePage() {
 
   const categories = [...new Set(services.map((s) => s.category))];
 
+  // In demo mode there is no signed-in client, so nothing would render here.
+  // Synthesise the "due to rebook" state from the first preset service: it is
+  // the single most important element on this screen and a demo that hides it
+  // undersells the product. Flagged by the demo strip above it either way.
+  const shownVisit: NextVisit =
+    nextVisit.kind === 'none' && !live && services[0]
+      ? {
+          kind: 'due',
+          serviceId: services[0].id,
+          serviceName: services[0].name,
+          suggestedDate: new Date(Date.now() + 3 * 86_400_000)
+            .toISOString()
+            .slice(0, 10),
+          daysOverdue: 4,
+          lastVisitAt: new Date(
+            Date.now() - (services[0].rebookIntervalDays + 4) * 86_400_000
+          ).toISOString(),
+        }
+      : nextVisit;
+
   return (
     <Screen title={brand.name} subtitle={brand.tagline}>
       {!live && (
@@ -124,11 +146,21 @@ export default async function HomePage() {
         </div>
       )}
 
+      <NextVisitCard
+        visit={shownVisit}
+        timezone={timezone}
+        rebookCta={brand.copy.rebookCta}
+      />
+
       {/* --- Primary action ------------------------------------------------
           One unmistakable next step, then small shortcuts. The previous
           two-tile grid pushed icon and label to opposite ends of a tall box
           and left a hole in the middle of both. */}
       <div className="px-4 py-2">
+        {/* Suppressed when the next-visit card is showing: that card is already
+            the booking action, and two large green CTAs stacked make the
+            screen ask the same question twice. */}
+        {shownVisit.kind === 'none' && (
         <Link
           href="/book"
           data-press
@@ -156,8 +188,15 @@ export default async function HomePage() {
             <path d="M1.2 1.2 6.6 7l-5.4 5.8" />
           </svg>
         </Link>
+        )}
 
-        <div className="mt-2.5 grid grid-cols-3 gap-2.5">
+        <div className={cn('grid grid-cols-3 gap-2.5', shownVisit.kind === 'none' && 'mt-2.5')}>
+          {shownVisit.kind !== 'none' && (
+            <QuickAction href="/book" label={brand.copy.bookCta.split(' ')[0] ?? 'Book'}>
+              <rect x="3.2" y="5" width="17.6" height="16" rx="3" />
+              <path d="M8 3v4M16 3v4M3.6 10.2h16.8" />
+            </QuickAction>
+          )}
           <QuickAction
             href={`tel:${brand.contact.phone.replace(/\D/g, '')}`}
             label="Call"
@@ -168,10 +207,12 @@ export default async function HomePage() {
           <QuickAction href="/memberships" label={brand.copy.membershipName}>
             <path d="M12 3.2 13.7 9l5.8 1.7-5.8 1.7L12 18.2l-1.7-5.8L4.5 10.7 10.3 9z" />
           </QuickAction>
-          <QuickAction href="/account" label={capitalise(vertical.visitNounPlural)}>
-            <rect x="3.2" y="5" width="17.6" height="16" rx="3" />
-            <path d="M8 3v4M16 3v4M3.6 10.2h16.8" />
-          </QuickAction>
+          {shownVisit.kind === 'none' && (
+            <QuickAction href="/account" label={capitalise(vertical.visitNounPlural)}>
+              <rect x="3.2" y="5" width="17.6" height="16" rx="3" />
+              <path d="M8 3v4M16 3v4M3.6 10.2h16.8" />
+            </QuickAction>
+          )}
         </div>
       </div>
 

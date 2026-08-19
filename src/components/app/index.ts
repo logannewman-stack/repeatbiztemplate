@@ -4,6 +4,8 @@ export { Screen } from './Screen';
 export { TabBar, type TabItem, type TabIconName } from './TabBar';
 export { ListGroup, ListRow, ListLink } from './List';
 export { Sheet } from './Sheet';
+export { NextVisitCard } from './NextVisitCard';
+export { PullToRefresh } from './PullToRefresh';
 export { InstallPrompt } from './InstallPrompt';
 export { NotificationSetting } from './NotificationSetting';
 export { usePush, type PushState, type PushStatus } from './push';
