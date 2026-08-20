@@ -226,7 +226,12 @@ button, [role="button"], a[role="button"], [role="tab"] {
   min-height: var(--tap-min);
   min-width: var(--tap-min);
 }
-/* ...except where a component deliberately sets its own density. */
+/* ...except where a component deliberately sets its own density.
+
+   Note for anyone reaching for `min-h-*` on an element that has this: it will
+   not work. These rules are unlayered, and unlayered CSS outranks anything in
+   @layer utilities regardless of specificity. Remove the attribute instead of
+   fighting it. */
 [data-compact-target] {
   min-height: 0;
   min-width: 0;
@@ -377,6 +382,29 @@ button, [role="button"], a[role="button"], [role="tab"] {
   .animate-push-in,
   .animate-sheet-in { animation: none; }
   .animate-draw { stroke-dashoffset: 0; }
+}
+
+/* --- Inline links --------------------------------------------------------- */
+
+/* A link inside running text is typically 16-19px tall, which is a hard target
+   on a phone and the one place this app kept failing its own 44px rule.
+   Padding on an inline box grows the hit area without growing the line box, so
+   the text stays exactly where it was and the tap gets nine more pixels. */
+.app-scroll p > a:not([class*="rounded"]),
+.app-scroll li > a:not([class*="rounded"]) {
+  /* 0.9rem each side clears 44px on a 13-16px line. */
+  padding-block: 0.9rem;
+  /* Otherwise a wrapped link's padded halves overlap the lines around it and
+     swallow taps meant for them. */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* A phone number or address is a tap, not a footnote. */
+.app-scroll a[href^="tel:"],
+.app-scroll a[href^="mailto:"] {
+  padding-block: 0.8rem;
+  font-weight: 500;
 }
 
 /* Momentum-scrolled rows should not repaint mid-flick. */

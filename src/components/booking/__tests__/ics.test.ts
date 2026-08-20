@@ -189,3 +189,50 @@ describe('groupByCategory', () => {
     expect(new Set(out.map((s) => s.name))).toEqual(new Set(['A', 'B', 'C', 'D']));
   });
 });
+
+// --- Loyalty tiers ----------------------------------------------------------
+
+import { tierFor } from '@/components/app/LoyaltyCard';
+
+const TIERS = [
+  { name: 'Member', minAnnualSpendCents: 0, perks: ['Earn points'] },
+  { name: 'Silver', minAnnualSpendCents: 50000, perks: ['Early access'] },
+  { name: 'Gold', minAnnualSpendCents: 120000, perks: ['Priority booking'] },
+  { name: 'Platinum', minAnnualSpendCents: 250000, perks: ['Waived deposits'] },
+];
+
+describe('tierFor', () => {
+  it('puts a new client on the bottom tier with the next one ahead', () => {
+    const s = tierFor(0, TIERS)!;
+    expect(s.current.name).toBe('Member');
+    expect(s.next!.name).toBe('Silver');
+  });
+
+  it('promotes exactly at the threshold, not a cent after', () => {
+    expect(tierFor(49999, TIERS)!.current.name).toBe('Member');
+    expect(tierFor(50000, TIERS)!.current.name).toBe('Silver');
+  });
+
+  it('has no next tier at the top', () => {
+    const s = tierFor(300000, TIERS)!;
+    expect(s.current.name).toBe('Platinum');
+    expect(s.next).toBeNull();
+  });
+
+  it('does not trust the order the tiers were written in', () => {
+    const shuffled = [TIERS[2], TIERS[0], TIERS[3], TIERS[1]];
+    const s = tierFor(60000, shuffled)!;
+    expect(s.current.name).toBe('Silver');
+    expect(s.next!.name).toBe('Gold');
+  });
+
+  it('returns null rather than throwing when loyalty is switched off', () => {
+    expect(tierFor(50000, [])).toBeNull();
+  });
+
+  it('handles a single-tier programme', () => {
+    const s = tierFor(10, [TIERS[0]])!;
+    expect(s.current.name).toBe('Member');
+    expect(s.next).toBeNull();
+  });
+});

@@ -134,8 +134,7 @@ export default async function HomePage() {
         <div className="px-4 pb-1 pt-1">
           <Link
             href="/admin/setup"
-            className="flex items-center gap-2 rounded-full bg-[var(--color-warning-soft)] px-3 py-1.5 text-[12px] leading-none"
-            data-compact-target
+            className="flex min-h-[var(--tap-min)] items-center gap-2 rounded-full bg-[var(--color-warning-soft)] px-3.5 py-2 text-[12px] leading-none"
           >
             <span className="size-1.5 shrink-0 rounded-full bg-[var(--color-warning)]" />
             <span className="min-w-0 flex-1 truncate">

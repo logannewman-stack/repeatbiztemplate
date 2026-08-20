@@ -26,14 +26,23 @@ import { cn } from '@/lib/utils';
 export function NotificationSetting({
   vapidPublicKey,
   visitNoun = 'appointment',
+  preview,
 }: {
   vapidPublicKey: string | null;
   visitNoun?: string;
+  /**
+   * Show the row even with nowhere to subscribe. Demo mode has no VAPID key,
+   * and silently hiding the headline feature from the person evaluating the
+   * product is the wrong kind of honest.
+   */
+  preview?: boolean;
 }) {
   const { state, busy, error, enable, disable } = usePush(vapidPublicKey);
 
   // Nothing to configure and nothing useful to say about it.
-  if (state === 'unsupported') return null;
+  if (state === 'unsupported' && !preview) return null;
+
+  const previewing = state === 'unsupported';
 
   return (
     <section className="px-4 py-2">
@@ -57,15 +66,23 @@ export function NotificationSetting({
               {visitNoun.charAt(0).toUpperCase() + visitNoun.slice(1)} reminders
             </span>
             <span className="mt-0.5 block text-[13px] text-[var(--color-muted)]">
-              {state === 'granted'
-                ? 'On for this device'
-                : state === 'denied'
-                  ? 'Blocked in browser settings'
-                  : state === 'needs-install'
-                    ? 'Available once installed'
-                    : 'Off'}
+              {previewing
+                ? 'Free, instant, and impossible to ignore'
+                : state === 'granted'
+                  ? 'On for this device'
+                  : state === 'denied'
+                    ? 'Blocked in browser settings'
+                    : state === 'needs-install'
+                      ? 'Available once installed'
+                      : 'Off'}
             </span>
           </span>
+
+          {previewing && (
+            <span className="shrink-0 rounded-[0.6rem] bg-[var(--color-surface-2)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-muted)]">
+              Preview
+            </span>
+          )}
 
           {(state === 'prompt' || state === 'granted') && (
             <button
@@ -90,6 +107,16 @@ export function NotificationSetting({
             </button>
           )}
         </div>
+
+        {previewing && (
+          <div className="border-t border-[var(--color-border)] px-4 py-3">
+            <p className="text-[13px] leading-snug text-[var(--color-muted)]">
+              Reminders, waitlist offers and rebooking nudges land on the lock
+              screen at no per-message cost, unlike a text. Add your keys and
+              this switch goes live — see <code>SETUP.md</code>.
+            </p>
+          </div>
+        )}
 
         {state === 'needs-install' && (
           <div className="border-t border-[var(--color-border)] px-4 py-3">

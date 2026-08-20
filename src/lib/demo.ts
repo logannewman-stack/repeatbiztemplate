@@ -252,3 +252,87 @@ export function demoSlots(
 function titleCase(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+
+// --- Demo account -----------------------------------------------------------
+
+export interface DemoAccount {
+  firstName: string;
+  loyaltyPoints: number;
+  annualSpendCents: number;
+  upcoming: Array<{
+    id: string; serviceName: string; staffName: string;
+    startsAt: string; confirmed: boolean;
+  }>;
+  past: Array<{
+    id: string; serviceId: string; serviceName: string;
+    staffName: string; completedAt: string; totalCents: number;
+  }>;
+  membership: {
+    planName: string; priceCents: number; interval: string; creditsBalance: number;
+  } | null;
+  offers: Array<{ id: string; label: string; code: string; expiresAt: string }>;
+}
+
+/**
+ * A plausible regular, for demo mode.
+ *
+ * The account screen is where a prospective owner looks to understand what
+ * their clients get, and an empty one with a note about Supabase answers
+ * nothing. Everything here is generated relative to today so the dates never
+ * go stale, and every screen that renders it labels it as sample data.
+ */
+export function demoAccount(): DemoAccount {
+  const services = demoServices();
+  const staff = demoStaff();
+  const plans = demoPlans();
+  const day = 86_400_000;
+  const now = Date.now();
+
+  /** Midday local, so a rendered date never slips either side of midnight. */
+  const at = (daysFromNow: number, hour: number) => {
+    const d = new Date(now + daysFromNow * day);
+    d.setHours(hour, daysFromNow % 2 ? 30 : 0, 0, 0);
+    return d.toISOString();
+  };
+
+  const usual = services[0];
+  const occasional = services[2] ?? services[0];
+
+  return {
+    firstName: 'Jordan',
+    loyaltyPoints: 640,
+    annualSpendCents: 78_500,
+    upcoming: [{
+      id: 'demo-appt-1',
+      serviceName: usual.name,
+      staffName: staff[0].display_name,
+      startsAt: at(9, 14),
+      confirmed: false,
+    }],
+    past: [
+      { id: 'demo-past-1', serviceId: usual.id, serviceName: usual.name,
+        staffName: staff[0].display_name, completedAt: at(-33, 14),
+        totalCents: usual.price_cents },
+      { id: 'demo-past-2', serviceId: occasional.id, serviceName: occasional.name,
+        staffName: staff[1]?.display_name ?? staff[0].display_name,
+        completedAt: at(-61, 11), totalCents: occasional.price_cents },
+      { id: 'demo-past-3', serviceId: usual.id, serviceName: usual.name,
+        staffName: staff[0].display_name, completedAt: at(-95, 16),
+        totalCents: usual.price_cents },
+    ],
+    membership: plans[0]
+      ? {
+          planName: plans[0].name,
+          priceCents: plans[0].price_cents,
+          interval: plans[0].billing_interval,
+          creditsBalance: 1,
+        }
+      : null,
+    offers: [{
+      id: 'demo-offer-1',
+      label: '$25 off your next visit — thanks for the referral',
+      code: 'THANKYOU25',
+      expiresAt: at(21, 12),
+    }],
+  };
+}

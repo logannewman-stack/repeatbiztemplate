@@ -5,6 +5,7 @@ export { TabBar, type TabItem, type TabIconName } from './TabBar';
 export { ListGroup, ListRow, ListLink, tintFor } from './List';
 export { Sheet } from './Sheet';
 export { NextVisitCard } from './NextVisitCard';
+export { LoyaltyCard, tierFor, type LoyaltyTier } from './LoyaltyCard';
 export { PullToRefresh } from './PullToRefresh';
 export { InstallPrompt } from './InstallPrompt';
 export { NotificationSetting } from './NotificationSetting';
