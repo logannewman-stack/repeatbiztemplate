@@ -377,25 +377,30 @@ export function BookingFlow(props: BookingFlowProps) {
 
               {activeSlots.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-[var(--color-muted)]">
+                  <h3 className="font-[family-name:var(--font-body)] text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
                     {activeSlots.length} time{activeSlots.length === 1 ? '' : 's'} available
                   </h3>
 
-                  <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {/* Chunkier than a text button: this is the tap that turns a
+                      browser into a booking, and it competes with a thumb. */}
+                  <div className="mt-2.5 grid grid-cols-3 gap-2 sm:grid-cols-4">
                     {activeSlots.map((s) => (
                       <button
                         key={`${s.startsAt}-${s.staffId}`}
                         onClick={() => { setSlot(s); setStep('extras'); }}
+                        data-press
                         className={cn(
-                          'rounded-[var(--radius-card)] border px-2 py-3 text-sm tabular-nums transition-colors',
+                          'flex min-h-[52px] flex-col items-center justify-center rounded-[var(--radius-card)] px-1.5 py-2.5 tabular-nums transition-colors',
                           slot?.startsAt === s.startsAt
-                            ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)] font-medium'
-                            : 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-brand)]'
+                            ? 'bg-[var(--color-brand)] text-[var(--color-brand-fg)] shadow-[var(--shadow-md)]'
+                            : 'bg-[var(--color-surface)] shadow-[var(--shadow-sm)]'
                         )}
                       >
-                        {formatTime(s.startsAt, props.timezone)}
+                        <span className="text-[15px] font-semibold leading-none">
+                          {formatTime(s.startsAt, props.timezone)}
+                        </span>
                         {!staffId && (
-                          <span className="block truncate text-[11px] font-normal opacity-60">
+                          <span className="mt-1 w-full truncate text-[11px] font-normal leading-none opacity-65">
                             {s.staffName.split(' ')[0]}
                           </span>
                         )}

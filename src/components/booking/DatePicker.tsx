@@ -77,7 +77,7 @@ export function DatePicker({
           onSelect={(date) => { onSelect(date); setShowMonth(false); }}
         />
       ) : (
-        <div ref={stripRef} className="scroll-x -mx-1 flex gap-2 px-1 pb-1">
+        <div ref={stripRef} className="scroll-x -mx-1 flex gap-2 py-1 pe-5 ps-1">
           {days.slice(0, 21).map((day) => {
             const isSelected = day.date === selected;
             const open = day.slotCount > 0;
@@ -94,10 +94,10 @@ export function DatePicker({
                 className={cn(
                   'relative flex min-w-16 shrink-0 flex-col items-center rounded-[var(--radius-card)] border px-3 py-2.5 transition-colors',
                   isSelected
-                    ? 'border-[var(--color-brand)] bg-[var(--color-brand)] text-[var(--color-brand-fg)]'
+                    ? 'border-transparent bg-[var(--color-brand)] text-[var(--color-brand-fg)] shadow-[var(--shadow-md)]'
                     : open
-                      ? 'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-brand)]'
-                      : 'cursor-not-allowed border-[var(--color-border)] bg-[var(--color-surface-2)] opacity-50'
+                      ? 'border-transparent bg-[var(--color-surface)] shadow-[var(--shadow-sm)]'
+                      : 'cursor-not-allowed border-transparent bg-[var(--color-surface-2)] opacity-45'
                 )}
               >
                 <span className="text-[11px] uppercase opacity-70">

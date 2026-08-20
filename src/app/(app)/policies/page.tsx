@@ -34,7 +34,11 @@ export default function PoliciesPage() {
           </p>
         </Alert>
 
-        <div className="mt-8 space-y-8">
+        {/* Collapsed by default. This page ran to 2,000px of unbroken prose,
+            which is unreadable on a phone and, worse, unscannable — nobody
+            reads a cancellation policy end to end, they look for the one
+            clause that applies to them. */}
+        <div className="mt-4 overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]">
           <Section title="Changes and cancellations">
             <p>
               You can change or cancel any {vertical.visitNoun} free of charge up
@@ -158,11 +162,34 @@ export default function PoliciesPage() {
   );
 }
 
+/**
+ * One collapsible clause.
+ *
+ * Built on <details> rather than React state so it works before hydration and
+ * keeps the browser's own find-in-page and accessibility behaviour — a policy
+ * page is exactly where someone will use ⌘F for the word "cancel".
+ */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section>
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <div className="mt-2 space-y-2 text-[var(--color-muted)]">{children}</div>
-    </section>
+    <details className="group border-b border-[var(--color-border)] last:border-b-0">
+      <summary
+        data-press="row"
+        className="flex min-h-[var(--tap-min)] cursor-pointer list-none items-center gap-3 px-4 py-3.5 transition-colors active:bg-[var(--color-surface-2)] [&::-webkit-details-marker]:hidden"
+      >
+        <span className="min-w-0 flex-1 text-[17px] font-medium">{title}</span>
+        <svg
+          width="12" height="12" viewBox="0 0 24 24" aria-hidden
+          className="shrink-0 text-[var(--color-muted)] transition-transform duration-200 group-open:rotate-90"
+          fill="none" stroke="currentColor" strokeWidth={2.6}
+          strokeLinecap="round" strokeLinejoin="round"
+        >
+          <path d="M8 4l8 8-8 8" />
+        </svg>
+      </summary>
+
+      <div className="space-y-2 px-4 pb-4 text-[15px] leading-snug text-[var(--color-muted)]">
+        {children}
+      </div>
+    </details>
   );
 }

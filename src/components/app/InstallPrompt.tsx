@@ -15,11 +15,16 @@
  *                   Share -> Add to Home Screen, so all we can do is say so,
  *                   pointing at a control we cannot draw attention to.
  *
- * Shown once, deferred for a month if dismissed, never when already installed.
+ * Shown once, deferred for a month if dismissed, never when already installed
+ * — and never during a flow. It is a fixed overlay above the tab bar, so on
+ * the booking screen it lands squarely on the time slots. Interrupting someone
+ * mid-booking to ask them to install the app trades the conversion you already
+ * had for one you might get, at the step where abandonment is highest.
  * ============================================================================
  */
 
 import * as React from 'react';
+import { usePathname } from 'next/navigation';
 import { usePlatform, haptic } from './platform';
 import { cn } from '@/lib/utils';
 
@@ -31,8 +36,17 @@ interface InstallEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+/**
+ * Screens where interrupting is acceptable: the person is browsing, not
+ * part-way through giving us money. An allow-list rather than a block-list, so
+ * a new checkout route is quiet by default instead of loud by accident.
+ */
+const CALM_ROUTES = ['/', '/account', '/memberships'];
+
 export function InstallPrompt({ appName }: { appName: string }) {
   const { isStandalone, isIOS, isPending } = usePlatform();
+  const pathname = usePathname();
+  const calm = CALM_ROUTES.includes(pathname);
   const [event, setEvent] = React.useState<InstallEvent | null>(null);
   const [visible, setVisible] = React.useState(false);
 
@@ -48,7 +62,7 @@ export function InstallPrompt({ appName }: { appName: string }) {
   }, []);
 
   React.useEffect(() => {
-    if (isPending || isStandalone) return;
+    if (isPending || isStandalone || !calm) return;
 
     let snoozedUntil = 0;
     try {
@@ -64,7 +78,7 @@ export function InstallPrompt({ appName }: { appName: string }) {
       const timer = window.setTimeout(() => setVisible(true), 2200);
       return () => window.clearTimeout(timer);
     }
-  }, [isPending, isStandalone, isIOS, event]);
+  }, [isPending, isStandalone, isIOS, event, calm]);
 
   const dismiss = React.useCallback(() => {
     setVisible(false);
@@ -78,7 +92,7 @@ export function InstallPrompt({ appName }: { appName: string }) {
     }
   }, []);
 
-  if (!visible || isStandalone) return null;
+  if (!visible || isStandalone || !calm) return null;
 
   const install = async () => {
     haptic();
