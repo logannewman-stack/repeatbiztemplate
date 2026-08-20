@@ -6,7 +6,7 @@ import { vertical } from '@/config/verticals';
 import { rules } from '@/config/rules';
 import { Card, CardHeader, CardBody, Badge, Button, Alert, EmptyState } from '@/components/ui';
 import { formatMoney, relativeDays, daysBetween } from '@/lib/utils';
-import { Screen, NotificationSetting } from '@/components/app';
+import { Screen, NotificationSetting, ListGroup, ListRow } from '@/components/app';
 import { vapidPublicKey } from '@/lib/messaging/push';
 
 export const metadata = { title: `My ${vertical.visitNounPlural}` };
@@ -32,14 +32,49 @@ export default async function AccountPage() {
   if (!user) {
     return (
       <>
-        <Screen title={'Sign in'}><div className="px-4">
-          <p className="mt-2 text-[var(--color-muted)]">
-            We&apos;ll email you a link — no password to remember.
+        {/* This is where a browser becomes a client with a record, which is
+            the whole retention mechanism — so it has to say what an account is
+            for rather than just presenting a button. */}
+        <Screen
+          title={'Your account'}
+          subtitle={`Everything about your ${vertical.visitNounPlural} in one place.`}
+          footer={
+            <Link href="/login" className="block">
+              <Button fullWidth size="lg">Sign in with email</Button>
+            </Link>
+          }
+        >
+          <ListGroup>
+            <ListRow
+              icon={<AccountIcon path="M3.2 5h17.6v16H3.2zM8 3v4M16 3v4M3.6 10.2h16.8" />}
+              label={`Your ${vertical.visitNounPlural}`}
+              detail="Change or cancel without calling"
+            />
+            <ListRow
+              icon={<AccountIcon path="M18 8.6a6 6 0 1 0-12 0c0 6-2.2 7.4-2.2 7.4h16.4S18 14.6 18 8.6M13.7 20a2 2 0 0 1-3.4 0" />}
+              label="Reminders before every visit"
+              detail="And first refusal when a slot opens up"
+            />
+            <ListRow
+              icon={<AccountIcon path="M21 12a9 9 0 1 1-2.6-6.4M21 3.5V10h-6.5" />}
+              label="One-tap rebooking"
+              detail="Your usual, at your usual interval"
+            />
+            <ListRow
+              icon={<AccountIcon path="M12 3.2 13.7 9l5.8 1.7-5.8 1.7L12 18.2l-1.7-5.8L4.5 10.7 10.3 9z" />}
+              label={`${brand.copy.membershipName} and credits`}
+              detail="Balances, billing, and what is included"
+            />
+          </ListGroup>
+
+          <p className="px-5 pt-1 text-[13px] leading-snug text-[var(--color-muted)]">
+            No password — we email you a link. Prefer not to?{' '}
+            <Link href="/book" className="font-medium text-[var(--color-brand)]">
+              Book without an account
+            </Link>
+            .
           </p>
-          <Link href="/login" className="mt-6 block">
-            <Button fullWidth size="lg">Continue</Button>
-          </Link>
-        </div></Screen>
+        </Screen>
       </>
     );
   }
@@ -318,5 +353,16 @@ export default async function AccountPage() {
         </p>
       </div></Screen>
     </>
+  );
+}
+
+/** Leading glyph for the signed-out benefit rows. */
+function AccountIcon({ path }: { path: string }) {
+  return (
+    <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
+      fill="none" stroke="currentColor" strokeWidth={1.7}
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d={path} />
+    </svg>
   );
 }

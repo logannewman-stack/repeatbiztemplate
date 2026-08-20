@@ -492,11 +492,69 @@ export function BookingFlow(props: BookingFlowProps) {
         <section aria-labelledby="step-details">
           <h2 id="step-details" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">Your details</h2>
 
+          {/* The summary this step was missing entirely. Handing over a phone
+              number with no reminder of what is being booked, when, or what it
+              costs is the last place to lose someone — and the total was
+              already computed, just never shown. */}
+          <div className="mt-3 overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]">
+            <div className="px-4 pb-3 pt-3.5">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-brand)]">
+                {new Intl.DateTimeFormat('en-US', {
+                  timeZone: props.timezone,
+                  weekday: 'long', month: 'short', day: 'numeric',
+                }).format(new Date(slot.startsAt))}
+                {' · '}
+                {formatTime(slot.startsAt, props.timezone)}
+              </p>
+              <p className="mt-1 text-[17px] font-semibold leading-tight">
+                {service.name}
+              </p>
+              <p className="mt-0.5 text-[13px] text-[var(--color-muted)]">
+                {formatDuration(service.duration_min)}
+                {slot.staffName ? ` · with ${slot.staffName}` : ''}
+              </p>
+            </div>
+
+            <dl className="border-t border-[var(--color-border)] px-4 py-3 text-[15px]">
+              <div className="flex justify-between gap-4 py-0.5">
+                <dt className="min-w-0 truncate text-[var(--color-muted)]">{service.name}</dt>
+                <dd className="shrink-0 tabular-nums">{formatMoney(basePrice, props.currency)}</dd>
+              </div>
+
+              {selectedAddons.map((a) => (
+                <div key={a.id} className="flex justify-between gap-4 py-0.5">
+                  <dt className="min-w-0 truncate text-[var(--color-muted)]">{a.name}</dt>
+                  <dd className="shrink-0 tabular-nums">{formatMoney(a.price_cents, props.currency)}</dd>
+                </div>
+              ))}
+
+              {tax > 0 && (
+                <div className="flex justify-between gap-4 py-0.5">
+                  <dt className="text-[var(--color-muted)]">Tax</dt>
+                  <dd className="shrink-0 tabular-nums">{formatMoney(tax, props.currency)}</dd>
+                </div>
+              )}
+
+              <div className="mt-1.5 flex justify-between gap-4 border-t border-[var(--color-border)] pt-2 font-semibold">
+                <dt>Total</dt>
+                <dd className="tabular-nums">{formatMoney(total, props.currency)}</dd>
+              </div>
+
+              {depositCents > 0 && (
+                <div className="flex justify-between gap-4 pt-1 text-[13px] text-[var(--color-muted)]">
+                  <dt>Due now</dt>
+                  <dd className="tabular-nums">{formatMoney(depositCents, props.currency)}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+
           <form
-            className="mt-4 space-y-4"
+            className="mt-4 space-y-3.5"
             onSubmit={(e) => { e.preventDefault(); submit(); }}
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-3 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-md)]">
+            <div className="grid gap-3 sm:grid-cols-2">
               <Field label="First name" required htmlFor="firstName">
                 <Input
                   id="firstName" required autoComplete="given-name"
@@ -541,13 +599,15 @@ export function BookingFlow(props: BookingFlowProps) {
               />
             </Field>
 
-            <label className="flex items-start gap-2 text-sm">
+            </div>
+
+            <label className="flex items-start gap-2.5 rounded-[var(--radius-card)] bg-[var(--color-surface)] px-4 py-3 text-[13px] shadow-[var(--shadow-sm)]">
               <input
-                type="checkbox" className="mt-0.5 size-4"
+                type="checkbox" className="mt-0.5 size-4 shrink-0 accent-[var(--color-brand)]"
                 checked={form.marketingOptIn}
                 onChange={(e) => setForm({ ...form, marketingOptIn: e.target.checked })}
               />
-              <span className="text-[var(--color-muted)]">
+              <span className="leading-snug text-[var(--color-muted)]">
                 Send me occasional offers and reminders when I&apos;m due for a visit.
               </span>
             </label>
