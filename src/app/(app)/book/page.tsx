@@ -31,6 +31,7 @@ export default async function BookPage({
   let timezone = demoLocation().timezone;
   let currency = 'USD';
   let taxRateBps = 700;
+  let businessName = brand.name;
   let loadFailed = false;
 
   if (!demoMode) {
@@ -42,13 +43,23 @@ export default async function BookPage({
       timezone = business.timezone;
       currency = business.currency;
       taxRateBps = business.tax_rate_bps;
+      // The live row is the source of truth once it exists; brand.name is only
+      // the fallback a fresh clone renders before anyone has configured one.
+      businessName = business.name || brand.name;
+
+      // The catalog already loads categories; the list groups by their name,
+      // which is what turns a twenty-service salon menu into something you can
+      // scan rather than scroll.
+      const categoryNames = new Map(
+        catalog.categories.map((c) => [c.id as string, c.name as string])
+      );
 
       services = catalog.services.map((s) => ({
         id: s.id,
         name: s.name,
         slug: s.slug,
         description: s.description,
-        category: '',
+        category: (s.category_id && categoryNames.get(s.category_id)) || '',
         duration_min: s.duration_min,
         processing_time_min: s.processing_time_min,
         finish_time_min: s.finish_time_min,
@@ -133,10 +144,10 @@ export default async function BookPage({
   }
 
   return (
-    <>
-      <Screen title={brand.copy.bookCta}><div>
-        <Suspense fallback={<p className="px-4 text-center text-sm">Loading…</p>}>
-          <BookingFlow
+    // No Screen here: the flow renders its own, so the nav bar can name the
+    // step and put Back where a phone user reaches for it.
+    <Suspense fallback={<p className="px-4 pt-8 text-center text-sm">Loading…</p>}>
+      <BookingFlow
             services={services}
             staff={staff}
             plans={plans}
@@ -149,9 +160,9 @@ export default async function BookPage({
             demoMode={demoMode}
             visitNoun={vertical.visitNoun}
             providerNoun={vertical.providerNoun}
-          />
-        </Suspense>
-      </div></Screen>
-    </>
+        rebookCta={brand.copy.rebookCta}
+        businessName={businessName}
+      />
+    </Suspense>
   );
 }

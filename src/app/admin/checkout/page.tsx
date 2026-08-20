@@ -4,7 +4,9 @@ import { loadBrand } from '@/lib/brand';
 import { isSupabaseConfigured } from '@/lib/demo';
 import { resolveRules } from '@/lib/rules';
 import { vertical } from '@/config/verticals';
-import { Alert, Card, CardBody, CardHeader, Badge, Button, EmptyState, Avatar } from '@/components/ui';
+import {
+  Alert, Avatar, Badge, ButtonLink, Card, CardBody, CardHeader, EmptyState,
+} from '@/components/ui';
 import { CheckoutTerminal } from '@/components/admin/CheckoutTerminal';
 import { formatMoney, fullName } from '@/lib/utils';
 
@@ -96,9 +98,7 @@ export default async function CheckoutPage({
             title="Nothing waiting to check out"
             description={`Everything on today's book is either done or not started. Check the calendar for what is coming.`}
             action={
-              <Link href="/admin/calendar">
-                <Button>Open calendar</Button>
-              </Link>
+              <ButtonLink href="/admin/calendar">Open calendar</ButtonLink>
             }
           />
         ) : (
@@ -197,7 +197,7 @@ export default async function CheckoutPage({
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Checkout</h1>
         <Alert tone="danger">That appointment could not be found.</Alert>
-        <Link href="/admin/checkout"><Button>Back</Button></Link>
+        <ButtonLink href="/admin/checkout">Back</ButtonLink>
       </div>
     );
   }
@@ -209,7 +209,7 @@ export default async function CheckoutPage({
         <Alert tone="warning">
           This {vertical.visitNoun} has already been checked out.
         </Alert>
-        <Link href="/admin/checkout"><Button>Back</Button></Link>
+        <ButtonLink href="/admin/checkout">Back</ButtonLink>
       </div>
     );
   }
@@ -276,9 +276,7 @@ export default async function CheckoutPage({
             })}
           </p>
         </div>
-        <Link href="/admin/checkout">
-          <Button variant="ghost" size="sm">Cancel</Button>
-        </Link>
+        <ButtonLink href="/admin/checkout" variant="ghost" size="sm">Cancel</ButtonLink>
       </header>
 
       <CheckoutTerminal

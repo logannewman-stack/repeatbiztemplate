@@ -1,11 +1,10 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { loadBrand } from '@/lib/brand';
 import { isSupabaseConfigured } from '@/lib/demo';
 import { vertical } from '@/config/verticals';
 import {
-  Card, CardBody, CardHeader, Badge, Button, Alert, Avatar, EmptyState, Stat,
+  Alert, Avatar, Badge, Button, ButtonLink, Card, CardBody, CardHeader, EmptyState, Stat,
 } from '@/components/ui';
 import { formatMoney, fullName, formatPhone, relativeDays, daysBetween } from '@/lib/utils';
 
@@ -147,9 +146,12 @@ export default async function ClientDetailPage({
               <Button variant="secondary" size="sm">Call</Button>
             </a>
           )}
-          <Link href={`/book?rebook=${client.id}`}>
-            <Button size="sm">Book a {vertical.visitNoun}</Button>
-          </Link>
+          <ButtonLink
+            href={`/book?rebook=${client.id}`}
+            size="sm"
+          >
+            Book a {vertical.visitNoun}
+          </ButtonLink>
         </div>
       </header>
 

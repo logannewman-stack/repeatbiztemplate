@@ -334,9 +334,50 @@ button, [role="button"], a[role="button"], [role="tab"] {
   to   { transform: translate3d(0, 0, 0); opacity: 1; }
 }
 
+/* The success moment. A confirmation that simply appears is information; one
+   that lands is a small reward, and this is the screen people remember. */
+@keyframes pop-in {
+  0%   { transform: scale(0.4); opacity: 0; }
+  60%  { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes draw {
+  from { stroke-dashoffset: var(--draw-length, 30); }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes rise-in {
+  from { transform: translate3d(0, 14px, 0); opacity: 0; }
+  to   { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
 .animate-sheet-in { animation: sheet-in var(--duration-sheet) var(--ease-ios); }
 .animate-fade-in  { animation: fade-in 200ms var(--ease-ios); }
 .animate-push-in  { animation: push-in var(--duration-nav) var(--ease-out-quint); }
+.animate-pop-in   { animation: pop-in 460ms var(--ease-out-quint) both; }
+
+/* Draws the tick rather than flashing it. */
+.animate-draw {
+  stroke-dasharray: var(--draw-length, 30);
+  animation: draw 420ms var(--ease-out-quint) 180ms both;
+}
+
+/* Content rises in behind the mark, each row a beat later than the last.
+   `both` so nothing is visible before its turn. */
+.animate-rise-in { animation: rise-in 420ms var(--ease-out-quint) both; }
+[data-stagger="1"] { animation-delay: 120ms; }
+[data-stagger="2"] { animation-delay: 210ms; }
+[data-stagger="3"] { animation-delay: 300ms; }
+[data-stagger="4"] { animation-delay: 390ms; }
+
+/* Motion is decoration here; the screen must read identically without it. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pop-in,
+  .animate-draw,
+  .animate-rise-in,
+  .animate-push-in,
+  .animate-sheet-in { animation: none; }
+  .animate-draw { stroke-dashoffset: 0; }
+}
 
 /* Momentum-scrolled rows should not repaint mid-flick. */
 .app-scroll > * { transform: translateZ(0); }

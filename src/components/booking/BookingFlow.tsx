@@ -18,15 +18,41 @@
  */
 
 import * as React from 'react';
-import { Button, Card, Badge, Input, Field, Alert } from '@/components/ui';
+import Link from 'next/link';
+import { Alert, Badge, Button, ButtonLink, Card, Field, Input } from '@/components/ui';
 import { formatMoney, formatDuration, cn } from '@/lib/utils';
 import type { DemoService, DemoAddon, DemoStaff } from '@/lib/demo';
 import { DatePicker } from '@/components/booking/DatePicker';
-import { tintFor } from '@/components/app';
+import { Screen, haptic, tintFor } from '@/components/app';
 
 type Step = 'service' | 'provider' | 'time' | 'extras' | 'details' | 'done';
 
 const STEP_ORDER: Step[] = ['service', 'provider', 'time', 'extras', 'details'];
+
+/**
+ * The nav bar names the step, not the flow. "Book appointment" on every screen
+ * tells someone on step four nothing they do not already know; "Your details"
+ * tells them exactly how much is left.
+ */
+/** So the pinned bar's submit button can drive the form it sits outside of. */
+const DETAILS_FORM_ID = 'booking-details';
+
+const STEP_TITLES: Record<Step, string> = {
+  service: 'What are you booking?',
+  provider: 'Who would you like?',
+  time: 'Pick a time',
+  extras: 'Anything to add?',
+  details: 'Your details',
+  done: 'Booked',
+};
+
+/** The one line under the title that a person actually needs on each step. */
+const STEP_SUBTITLES = (props: {
+  providerNoun: string; visitNoun: string;
+}): Partial<Record<Step, string>> => ({
+  provider: `Someone you have seen before, or whichever ${props.providerNoun} is free.`,
+  extras: `Optional — we can also decide at your ${props.visitNoun}.`,
+});
 
 interface DaySlots {
   date: string;
@@ -55,6 +81,10 @@ export interface BookingFlowProps {
   demoMode: boolean;
   visitNoun: string;
   providerNoun: string;
+  /** "Book my next visit" — the words used on every rebooking prompt. */
+  rebookCta: string;
+  /** Appears in the calendar file the client saves, so it is theirs, not ours. */
+  businessName: string;
 }
 
 export function BookingFlow(props: BookingFlowProps) {
@@ -77,7 +107,10 @@ export function BookingFlow(props: BookingFlowProps) {
   const [confirmation, setConfirmation] = React.useState<{
     reference: string;
     startsAt: string;
+    endsAt: string;
     staffName: string;
+    serviceId: string;
+    serviceName: string;
     rebookIntervalDays: number;
   } | null>(null);
 
@@ -85,6 +118,13 @@ export function BookingFlow(props: BookingFlowProps) {
     firstName: '', lastName: '', email: '', phone: '',
     notes: '', smsOptIn: true, marketingOptIn: false,
   });
+
+  // Each step is a new screen, and a new screen starts at the top. Without
+  // this a tall service list leaves you halfway down the next step, which is
+  // the single clearest tell that a flow is a web page.
+  React.useEffect(() => {
+    document.querySelector('.app-scroll')?.scrollTo({ top: 0, behavior: 'auto' });
+  }, [step]);
 
   const service = props.services.find((s) => s.id === serviceId) ?? null;
   const selectedAddons = service
@@ -146,6 +186,16 @@ export function BookingFlow(props: BookingFlowProps) {
     return day ? dedupeSlots(day.slots) : [];
   }, [days, activeDate]);
 
+  // Naming the provider under every chip only helps when there is a choice to
+  // be made. One name repeated fourteen times is just noise on the chip that
+  // matters most — and the comparison is on the *label* we would draw, so
+  // three people all shown as "Provider" still count as one.
+  const showSlotStaff = React.useMemo(
+    () => !staffId
+      && new Set(activeSlots.map((s) => staffLabel(s.staffName))).size > 1,
+    [staffId, activeSlots]
+  );
+
   const depositCents = React.useMemo(() => {
     if (!service || service.deposit_mode === 'none') return 0;
     if (service.deposit_mode === 'full') return total;
@@ -187,7 +237,12 @@ export function BookingFlow(props: BookingFlowProps) {
       setConfirmation({
         reference: data.reference,
         startsAt: slot.startsAt,
+        endsAt: new Date(
+          new Date(slot.startsAt).getTime() + service.duration_min * 60_000
+        ).toISOString(),
         staffName: slot.staffName,
+        serviceId: service.id,
+        serviceName: service.name,
         rebookIntervalDays: service.rebook_interval_days,
       });
       setStep('done');
@@ -201,13 +256,68 @@ export function BookingFlow(props: BookingFlowProps) {
   // --- Confirmation --------------------------------------------------------
 
   if (step === 'done' && confirmation) {
-    return <Confirmation {...confirmation} timezone={props.timezone} visitNoun={props.visitNoun} />;
+    return (
+      <Screen title={STEP_TITLES.done} largeTitle={false}>
+        <Confirmation
+          {...confirmation}
+          timezone={props.timezone}
+          visitNoun={props.visitNoun}
+          rebookCta={props.rebookCta}
+          businessName={props.businessName}
+        />
+      </Screen>
+    );
   }
 
   const stepIndex = STEP_ORDER.indexOf(step);
+  const previous = stepIndex > 0 ? STEP_ORDER[stepIndex - 1] : null;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-32">
+    <Screen
+      title={STEP_TITLES[step]}
+      subtitle={
+        step === 'time'
+          ? `${formatDuration(duration)}${staffId ? ` · ${props.staff.find((s) => s.id === staffId)?.display_name}` : ''}`
+          : STEP_SUBTITLES(props)[step]
+      }
+      back={
+        previous
+          ? { onClick: () => setStep(previous), label: STEP_TITLES[previous] }
+          : { href: '/', label: 'Home' }
+      }
+      footer={
+        service && step !== 'service' ? (
+          <SummaryBar
+            service={service}
+            slot={slot}
+            duration={duration}
+            total={total}
+            addonsTotal={addonsTotal}
+            currency={props.currency}
+            timezone={props.timezone}
+            // The bar carries the step's action, so the primary control is
+            // always in thumb reach instead of below four form fields.
+            action={
+              step === 'extras' ? (
+                <Button onClick={() => setStep('details')} size="lg">
+                  Continue
+                </Button>
+              ) : step === 'details' ? (
+                <Button
+                  type="submit"
+                  form={DETAILS_FORM_ID}
+                  size="lg"
+                  loading={submitting}
+                >
+                  {depositCents > 0 ? 'Pay and book' : 'Confirm'}
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : undefined
+      }
+    >
+    <div className="mx-auto max-w-3xl px-4 pt-2">
       <Progress current={stepIndex} />
 
       {error && (
@@ -218,71 +328,69 @@ export function BookingFlow(props: BookingFlowProps) {
 
       {/* --- Step 1: service -------------------------------------------- */}
       {step === 'service' && (
-        <section aria-labelledby="step-service">
-          <h2 id="step-service" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">
-            What are you booking?
-          </h2>
+        <section aria-label="Services">
+          {/* Grouped cards rather than a stack of tall ones. A real salon menu
+              runs to twenty services; at the old density two filled the screen
+              and the description outweighed the price. */}
+          <div className="mt-1 space-y-5">
+            {groupByCategory(props.services).map((group) => (
+              <div key={group.label || '_'}>
+                {group.label && (
+                  <h3 className="px-1 pb-1.5 font-[family-name:var(--font-body)] text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
+                    {group.label}
+                  </h3>
+                )}
+                <div className="overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]">
+                  <div className="divide-y divide-[var(--color-border)]">
+                    {group.services.map((s) => (
+                      <button
+                        key={s.id}
+                        onClick={() => { setServiceId(s.id); setStep('provider'); }}
+                        data-press="row"
+                        className="flex min-h-[var(--tap-min)] w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-[var(--color-surface-2)]"
+                      >
+                        <span
+                          aria-hidden
+                          className="flex size-10 shrink-0 items-center justify-center rounded-[0.6rem]"
+                          style={tintFor(s.name)}
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"
+                            strokeLinejoin="round">
+                            <path d="M12 3.6 13.5 9l5.4 1.6-5.4 1.6L12 17.6l-1.5-5.4L5.1 10.6 10.5 9z" />
+                          </svg>
+                        </span>
 
-          {/* One grouped card rather than a stack of tall ones. A real salon
-              menu runs to twenty services; at the old density two filled the
-              screen and the description outweighed the price. */}
-          <div className="mt-3 overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]">
-            <div className="divide-y divide-[var(--color-border)]">
-              {props.services.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => { setServiceId(s.id); setStep('provider'); }}
-                  data-press="row"
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-[var(--color-surface-2)]"
-                >
-                  <span
-                    aria-hidden
-                    className="flex size-11 shrink-0 items-center justify-center rounded-[0.6rem]"
-                    style={tintFor(s.name)}
-                  >
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth={1.7} strokeLinecap="round"
-                      strokeLinejoin="round">
-                      <path d="M12 3.6 13.5 9l5.4 1.6-5.4 1.6L12 17.6l-1.5-5.4L5.1 10.6 10.5 9z" />
-                    </svg>
-                  </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-[17px] leading-tight">{s.name}</span>
+                          {/* Duration and blurb share one clamped line. Two
+                              lines of description per row meant five services
+                              filled a phone; a real menu has twenty. */}
+                          <span className="mt-0.5 block truncate text-[13px] text-[var(--color-muted)]">
+                            {formatDuration(s.duration_min)}
+                            {s.description ? ` · ${s.description}` : ''}
+                          </span>
+                        </span>
 
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[17px] leading-tight">{s.name}</span>
-                    <span className="mt-0.5 block text-[13px] text-[var(--color-muted)]">
-                      {formatDuration(s.duration_min)}
-                    </span>
-                    {s.description && (
-                      <span className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-[var(--color-muted)]">
-                        {s.description}
-                      </span>
-                    )}
-                  </span>
+                        <span className="shrink-0 text-[17px] font-semibold tabular-nums">
+                          {s.price_cents === 0 ? 'Free' : formatMoney(s.price_cents, props.currency)}
+                        </span>
 
-                  <span className="shrink-0 text-[17px] font-semibold tabular-nums">
-                    {s.price_cents === 0 ? 'Free' : formatMoney(s.price_cents, props.currency)}
-                  </span>
-
-                  <svg width="8" height="14" viewBox="0 0 8 14" aria-hidden
-                    className="shrink-0 text-[var(--color-muted)] opacity-60"
-                    fill="none" stroke="currentColor" strokeWidth={2}
-                    strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1.2 1.2 6.6 7l-5.4 5.8" />
-                  </svg>
-                </button>
-              ))}
-            </div>
+                        <Chevron />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </section>
       )}
 
       {/* --- Step 2: provider -------------------------------------------- */}
       {step === 'provider' && service && (
-        <section aria-labelledby="step-provider">
-          <h2 id="step-provider" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">
-            Who would you like to see?
-          </h2>
-          <div className="mt-4 space-y-2">
+        <section aria-label="Providers">
+          <div className="mt-1 space-y-2">
             <button
               onClick={() => { setStaffId(null); setStep('time'); }}
               className="flex w-full items-center gap-3 rounded-[var(--radius-card)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-left transition-colors hover:border-[var(--color-brand)]"
@@ -326,19 +434,12 @@ export function BookingFlow(props: BookingFlowProps) {
               </button>
             ))}
           </div>
-          <BackButton onClick={() => setStep('service')} />
         </section>
       )}
 
       {/* --- Step 3: time ------------------------------------------------- */}
       {step === 'time' && service && (
-        <section aria-labelledby="step-time">
-          <h2 id="step-time" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">Pick a time</h2>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">
-            {formatDuration(duration)}
-            {staffId && ` · ${props.staff.find((s) => s.id === staffId)?.display_name}`}
-          </p>
-
+        <section aria-label="Available times">
           {loadingSlots ? (
             <div className="mt-6 space-y-3" aria-busy>
               <div className="flex gap-2">
@@ -376,56 +477,55 @@ export function BookingFlow(props: BookingFlowProps) {
               />
 
               {activeSlots.length > 0 && (
-                <div>
-                  <h3 className="font-[family-name:var(--font-body)] text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
-                    {activeSlots.length} time{activeSlots.length === 1 ? '' : 's'} available
-                  </h3>
-
-                  {/* Chunkier than a text button: this is the tap that turns a
-                      browser into a booking, and it competes with a thumb. */}
-                  <div className="mt-2.5 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {activeSlots.map((s) => (
-                      <button
-                        key={`${s.startsAt}-${s.staffId}`}
-                        onClick={() => { setSlot(s); setStep('extras'); }}
-                        data-press
-                        className={cn(
-                          'flex min-h-[52px] flex-col items-center justify-center rounded-[var(--radius-card)] px-1.5 py-2.5 tabular-nums transition-colors',
-                          slot?.startsAt === s.startsAt
-                            ? 'bg-[var(--color-brand)] text-[var(--color-brand-fg)] shadow-[var(--shadow-md)]'
-                            : 'bg-[var(--color-surface)] shadow-[var(--shadow-sm)]'
-                        )}
-                      >
-                        <span className="text-[15px] font-semibold leading-none">
-                          {formatTime(s.startsAt, props.timezone)}
+                <div className="space-y-4">
+                  {groupByPartOfDay(activeSlots, props.timezone).map((group) => (
+                    <div key={group.label}>
+                      <h3 className="flex items-baseline justify-between gap-3 font-[family-name:var(--font-body)] text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
+                        <span>{group.label}</span>
+                        <span className="font-normal normal-case tracking-normal">
+                          {group.slots.length} time{group.slots.length === 1 ? '' : 's'}
                         </span>
-                        {!staffId && (
-                          <span className="mt-1 w-full truncate text-[11px] font-normal leading-none opacity-65">
-                            {s.staffName.split(' ')[0]}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                      </h3>
+
+                      {/* Chunkier than a text button: this is the tap that turns
+                          a browser into a booking, and it competes with a thumb. */}
+                      <div className="mt-2.5 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {group.slots.map((s) => (
+                          <button
+                            key={`${s.startsAt}-${s.staffId}`}
+                            onClick={() => { setSlot(s); setStep('extras'); }}
+                            data-press
+                            className={cn(
+                              'flex min-h-[52px] flex-col items-center justify-center rounded-[var(--radius-card)] px-1.5 py-2.5 tabular-nums transition-colors',
+                              slot?.startsAt === s.startsAt
+                                ? 'bg-[var(--color-brand)] text-[var(--color-brand-fg)] shadow-[var(--shadow-md)]'
+                                : 'bg-[var(--color-surface)] shadow-[var(--shadow-sm)]'
+                            )}
+                          >
+                            <span className="text-[15px] font-semibold leading-none">
+                              {formatTime(s.startsAt, props.timezone)}
+                            </span>
+                            {showSlotStaff && (
+                              <span className="mt-1 w-full truncate text-[11px] font-normal leading-none opacity-65">
+                                {staffLabel(s.staffName)}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           )}
-          <BackButton onClick={() => setStep('provider')} />
         </section>
       )}
 
       {/* --- Step 4: add-ons ---------------------------------------------- */}
       {step === 'extras' && service && (
-        <section aria-labelledby="step-extras">
-          <h2 id="step-extras" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">
-            Anything to add?
-          </h2>
-          <p className="mt-1 text-sm text-[var(--color-muted)]">
-            Optional — we can also decide at your {props.visitNoun}.
-          </p>
-
-          <div className="mt-4 space-y-2">
+        <section aria-label="Add-ons">
+          <div className="mt-1 space-y-2">
             {service.addons.slice(0, 3).map((addon) => {
               const checked = addonIds.includes(addon.id);
               return (
@@ -478,20 +578,12 @@ export function BookingFlow(props: BookingFlowProps) {
             </div>
           )}
 
-          <div className="mt-6 flex gap-2">
-            <Button onClick={() => setStep('details')} fullWidth>
-              Continue
-            </Button>
-          </div>
-          <BackButton onClick={() => setStep('time')} />
         </section>
       )}
 
       {/* --- Step 5: details ---------------------------------------------- */}
       {step === 'details' && service && slot && (
-        <section aria-labelledby="step-details">
-          <h2 id="step-details" className="font-[family-name:var(--font-body)] text-[15px] font-semibold">Your details</h2>
-
+        <section aria-label="Your details">
           {/* The summary this step was missing entirely. Handing over a phone
               number with no reminder of what is being booked, when, or what it
               costs is the last place to lose someone — and the total was
@@ -550,6 +642,7 @@ export function BookingFlow(props: BookingFlowProps) {
           </div>
 
           <form
+            id={DETAILS_FORM_ID}
             className="mt-4 space-y-3.5"
             onSubmit={(e) => { e.preventDefault(); submit(); }}
           >
@@ -621,45 +714,57 @@ export function BookingFlow(props: BookingFlowProps) {
               </Alert>
             )}
 
-            <Button type="submit" fullWidth size="lg" loading={submitting}>
-              {depositCents > 0
-                ? `Pay deposit and book`
-                : `Confirm ${props.visitNoun}`}
-            </Button>
-
-            <p className="text-center text-xs text-[var(--color-muted)]">
+            {/* The submit control lives in the pinned bar; this stays because
+                the reassurance belongs next to the fields, not the button. */}
+            <p className="px-1 text-center text-[13px] leading-snug text-[var(--color-muted)]">
               Free changes up to {props.freeCancellationHours} hours before.
             </p>
           </form>
-          <BackButton onClick={() => setStep('extras')} />
         </section>
       )}
 
-      {/* --- Sticky summary ---------------------------------------------- */}
-      {service && step !== 'service' && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{service.name}</p>
-              <p className="truncate text-xs text-[var(--color-muted)]">
-                {slot
-                  ? `${formatDayHeading(slot.startsAt.slice(0, 10), props.timezone)}, ${formatTime(slot.startsAt, props.timezone)} · ${slot.staffName}`
-                  : formatDuration(duration)}
-              </p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className="font-semibold tabular-nums">
-                {formatMoney(total, props.currency)}
-              </p>
-              {addonsTotal > 0 && (
-                <p className="text-xs text-[var(--color-muted)]">
-                  incl. {formatMoney(addonsTotal, props.currency)} extras
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+    </div>
+    </Screen>
+  );
+}
+
+/**
+ * What this booking currently is, pinned above the tab bar.
+ *
+ * Rendered through the screen's footer slot rather than as its own fixed bar:
+ * a `fixed bottom-0` element sits *under* the tab bar, which is how this spent
+ * a while being invisible.
+ */
+function SummaryBar({
+  service, slot, duration, total, addonsTotal, currency, timezone, action,
+}: {
+  service: DemoService;
+  slot: DaySlots['slots'][number] | null;
+  duration: number;
+  total: number;
+  addonsTotal: number;
+  currency: string;
+  timezone: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[15px] font-semibold leading-tight tabular-nums">
+          {formatMoney(total, currency)}
+          <span className="ml-1.5 font-normal text-[var(--color-muted)]">
+            {addonsTotal > 0
+              ? `incl. ${formatMoney(addonsTotal, currency)} extras`
+              : formatDuration(duration)}
+          </span>
+        </p>
+        <p className="mt-0.5 truncate text-[13px] text-[var(--color-muted)]">
+          {slot
+            ? `${service.name} · ${formatDayHeading(slot.startsAt.slice(0, 10), timezone)}, ${formatTime(slot.startsAt, timezone)}`
+            : service.name}
+        </p>
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
@@ -694,69 +799,318 @@ function Progress({ current }: { current: number }) {
   );
 }
 
-function BackButton({ onClick }: { onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="mt-6 text-sm text-[var(--color-muted)] underline-offset-4 hover:underline"
-    >
-      ← Back
-    </button>
-  );
-}
-
 function Confirmation({
-  reference, startsAt, staffName, rebookIntervalDays, timezone, visitNoun,
+  reference, startsAt, endsAt, staffName, serviceId, serviceName,
+  rebookIntervalDays, timezone, visitNoun, rebookCta, businessName,
 }: {
   reference: string;
   startsAt: string;
+  endsAt: string;
   staffName: string;
+  serviceId: string;
+  serviceName: string;
   rebookIntervalDays: number;
   timezone: string;
   visitNoun: string;
+  rebookCta: string;
+  businessName: string;
 }) {
+  const [saved, setSaved] = React.useState(false);
+
+  // The next visit, already dated. Rebooking is decided in the ninety seconds
+  // after a visit is booked, not weeks later by campaign — so this screen has
+  // to make the offer while the person is still here and still pleased.
+  const nextDate = new Date(
+    new Date(startsAt).getTime() + rebookIntervalDays * 86_400_000
+  )
+    .toISOString()
+    .slice(0, 10);
+
+  React.useEffect(() => { haptic([10, 60, 18]); }, []);
+
   return (
-    <div className="mx-auto max-w-lg px-4 py-12 text-center">
-      <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-[var(--color-success-soft)] text-2xl text-[var(--color-success)]">
-        ✓
+    <div className="mx-auto max-w-lg px-4 pb-8 pt-6">
+      <div className="flex flex-col items-center text-center">
+        <span className="animate-pop-in flex size-[72px] items-center justify-center rounded-full bg-[var(--color-success-soft)] text-[var(--color-success)]">
+          <svg width="34" height="34" viewBox="0 0 24 24" aria-hidden
+            fill="none" stroke="currentColor" strokeWidth={2.4}
+            strokeLinecap="round" strokeLinejoin="round">
+            <path className="animate-draw" style={{ ['--draw-length' as string]: '22' }}
+              d="M4.5 12.5 9.5 17.5 19.5 7" />
+          </svg>
+        </span>
+
+        <h2 className="animate-rise-in mt-4 text-[27px] font-semibold leading-tight" data-stagger="1">
+          You&apos;re booked
+        </h2>
+        <p className="animate-rise-in mt-1.5 text-[15px] leading-snug text-[var(--color-muted)]" data-stagger="1">
+          {formatDayHeading(startsAt.slice(0, 10), timezone)} at{' '}
+          <span className="font-medium text-[var(--color-fg)]">
+            {formatTime(startsAt, timezone)}
+          </span>
+          {staffName ? ` with ${staffName}` : ''}
+        </p>
       </div>
-      <h2 className="mt-4 text-2xl font-semibold">You&apos;re booked</h2>
-      <p className="mt-2 text-[var(--color-muted)]">
-        {formatDayHeading(startsAt.slice(0, 10), timezone)} at{' '}
-        {formatTime(startsAt, timezone)} with {staffName}.
+
+      <div className="animate-rise-in mt-6 overflow-hidden rounded-[var(--radius-card)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]" data-stagger="2">
+        <div className="flex items-center justify-between gap-4 px-4 py-3">
+          <span className="text-[15px] text-[var(--color-muted)]">Confirmation</span>
+          <span className="font-mono text-[15px] font-medium tracking-wide tabular-nums">
+            {reference}
+          </span>
+        </div>
+
+        {/* A calendar entry is a reminder the client owns, on top of the ones
+            we send — and it is the first thing most people reach for here. */}
+        <button
+          type="button"
+          onClick={() => {
+            saveToCalendar({ startsAt, endsAt, serviceName, staffName, businessName, reference });
+            haptic();
+            setSaved(true);
+          }}
+          data-press="row"
+          className="flex min-h-[var(--tap-min)] w-full items-center gap-3 border-t border-[var(--color-border)] px-4 py-3 text-left transition-colors active:bg-[var(--color-surface-2)]"
+        >
+          <span className="flex size-7 shrink-0 items-center justify-center text-[var(--color-brand)]">
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden
+              fill="none" stroke="currentColor" strokeWidth={1.8}
+              strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3.2" y="5" width="17.6" height="16" rx="3" />
+              <path d="M8 3v4M16 3v4M3.6 10.2h16.8M12 13.5v5M9.5 16h5" />
+            </svg>
+          </span>
+          <span className="flex-1 text-[17px]">
+            {saved ? 'Saved to calendar' : 'Add to calendar'}
+          </span>
+          {saved ? (
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden
+              className="shrink-0 text-[var(--color-success)]"
+              fill="none" stroke="currentColor" strokeWidth={2.6}
+              strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4.5 12.5 9.5 17.5 19.5 7" />
+            </svg>
+          ) : (
+            <Chevron />
+          )}
+        </button>
+      </div>
+
+      <p className="animate-rise-in mt-3 px-1 text-[13px] leading-snug text-[var(--color-muted)]" data-stagger="2">
+        We&apos;ve emailed your confirmation and will remind you before your{' '}
+        {visitNoun}.
       </p>
 
-      <Card className="mt-6 p-5 text-left">
-        <p className="text-sm text-[var(--color-muted)]">Confirmation</p>
-        <p className="font-mono text-lg">{reference}</p>
-        <p className="mt-3 text-sm text-[var(--color-muted)]">
-          We&apos;ve sent a confirmation and will text you a reminder before your{' '}
-          {visitNoun}.
-        </p>
-      </Card>
+      {/* --- The rebooking moment ------------------------------------------ */}
+      {rebookIntervalDays > 0 && (
+        <div className="animate-rise-in mt-7" data-stagger="3">
+          <h3 className="px-1 pb-2 font-[family-name:var(--font-body)] text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--color-muted)]">
+            While you&apos;re here
+          </h3>
+          <Link
+            href={`/book?service=${serviceId}&date=${nextDate}`}
+            data-press
+            onClick={() => haptic()}
+            className="flex items-center gap-3.5 rounded-[var(--radius-card)] bg-[var(--color-brand)] px-4 py-4 text-[var(--color-brand-fg)] shadow-[var(--shadow-lg)]"
+          >
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-fg)]/15 ring-1 ring-inset ring-[var(--color-brand-fg)]/25">
+              <svg width="19" height="19" viewBox="0 0 24 24" aria-hidden
+                fill="none" stroke="currentColor" strokeWidth={2.1}
+                strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-2.6-6.4" />
+                <path d="M21 3.5V10h-6.5" />
+              </svg>
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[17px] font-semibold leading-tight">
+                {rebookCta}
+              </span>
+              <span className="mt-1 block text-[13px] leading-snug opacity-80">
+                Most people come back in about {rebookIntervalDays} days. Hold
+                that spot now — it takes ten seconds.
+              </span>
+            </span>
+            <span className="shrink-0 opacity-70">
+              <Chevron />
+            </span>
+          </Link>
+        </div>
+      )}
 
-      {/* The rebooking seed. Planting the interval now makes the nudge in a
-          few weeks feel expected rather than like marketing. */}
-      <Alert tone="brand" title="One thing to know">
-        <p className="mt-1">
-          Most clients come back in about {rebookIntervalDays} days. We&apos;ll remind
-          you when you&apos;re due so the time you want is still open.
-        </p>
-      </Alert>
-
-      <div className="mt-6 flex flex-col gap-2">
-        <a href="/account">
-          <Button fullWidth variant="secondary">View my {visitNoun}s</Button>
-        </a>
-        <a href="/">
-          <Button fullWidth variant="ghost">Back to home</Button>
-        </a>
+      <div className="animate-rise-in mt-7 flex flex-col gap-2.5" data-stagger="4">
+        <ButtonLink href="/account" variant="secondary" size="lg" fullWidth>
+          View my {visitNoun}s
+        </ButtonLink>
+        <ButtonLink href="/" variant="ghost" fullWidth>
+          Back to home
+        </ButtonLink>
       </div>
     </div>
   );
 }
 
+function Chevron() {
+  return (
+    <svg width="8" height="14" viewBox="0 0 8 14" aria-hidden
+      className="shrink-0 text-current opacity-50"
+      fill="none" stroke="currentColor" strokeWidth={2}
+      strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1.2 1.2 6.6 7l-5.4 5.8" />
+    </svg>
+  );
+}
+
+/**
+ * Hand the client a calendar entry.
+ *
+ * Written by hand rather than pulled from a library: it is a dozen lines, and
+ * a calendar entry is too useful here to make it wait on a dependency. RFC 5545
+ * is fussy — CRLF line endings, escaped text, UTC timestamps — and a malformed
+ * file fails silently rather than erroring.
+ *
+ * A Blob rather than a `data:` URI, and a click rather than an `<a download>`:
+ * Safari ignores `download` on iOS and blocks top-level navigation to `data:`
+ * URIs, which between them would make this do nothing on the one platform that
+ * matters most here.
+ */
+function saveToCalendar(event: {
+  startsAt: string;
+  endsAt: string;
+  serviceName: string;
+  staffName: string;
+  businessName: string;
+  reference: string;
+}): void {
+  const blob = new Blob([buildIcs(event)], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${slugify(event.businessName)}-appointment.ics`;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  // Revoked on the next tick rather than immediately: Safari reads the blob
+  // asynchronously and a same-frame revoke races the download.
+  window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+function slugify(text: string): string {
+  return text.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'appointment';
+}
+
+export function buildIcs({
+  startsAt, endsAt, serviceName, staffName, businessName, reference,
+}: {
+  startsAt: string;
+  endsAt: string;
+  serviceName: string;
+  staffName: string;
+  businessName: string;
+  reference: string;
+}): string {
+  // Always UTC. A local-offset ISO string ("...T14:00:00-07:00") is not a legal
+  // RFC 5545 timestamp, and slots arrive in whatever shape the server sent.
+  const stamp = (iso: string) =>
+    new Date(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
+  // Backslash first, or the escapes we add would themselves be escaped.
+  const esc = (text: string) =>
+    text.replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\r?\n/g, '\\n');
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `PRODID:-//${esc(businessName)}//Booking//EN`,
+    'BEGIN:VEVENT',
+    `UID:${reference}@booking`,
+    `DTSTAMP:${stamp(new Date().toISOString())}`,
+    `DTSTART:${stamp(startsAt)}`,
+    `DTEND:${stamp(endsAt)}`,
+    `SUMMARY:${esc(`${serviceName} — ${businessName}`)}`,
+    `DESCRIPTION:${esc(`With ${staffName}. Confirmation ${reference}.`)}`,
+    'STATUS:CONFIRMED',
+    // A reminder the client controls, an hour out, on top of the ones we send.
+    'BEGIN:VALARM',
+    'TRIGGER:-PT1H',
+    'ACTION:DISPLAY',
+    `DESCRIPTION:${esc(`${serviceName} at ${businessName} in 1 hour`)}`,
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+}
+
 // --- Helpers ----------------------------------------------------------------
+
+/**
+ * Group the menu by category, preserving the order the business set.
+ *
+ * A single unnamed group when nothing is categorised, so a small business that
+ * never filled that field gets one clean list rather than a heading reading
+ * "Uncategorised".
+ */
+export function groupByCategory(
+  services: DemoService[]
+): Array<{ label: string; services: DemoService[] }> {
+  const named = services.filter((s) => s.category);
+  if (named.length === 0) return [{ label: '', services }];
+
+  const groups = new Map<string, DemoService[]>();
+  for (const service of services) {
+    // Anything left uncategorised collects at the end under one heading rather
+    // than being dropped from the menu.
+    const key = service.category || 'More';
+    const bucket = groups.get(key);
+    if (bucket) bucket.push(service);
+    else groups.set(key, [service]);
+  }
+
+  const entries = [...groups.entries()];
+  const more = entries.filter(([label]) => label === 'More');
+  return [...entries.filter(([label]) => label !== 'More'), ...more]
+    .map(([label, s]) => ({ label, services: s }));
+}
+
+/** First name only; a slot chip is three characters wide on a small phone. */
+function staffLabel(name: string): string {
+  return name.split(' ')[0];
+}
+
+/**
+ * Morning / afternoon / evening.
+ *
+ * A flat grid of fourteen times is a wall; people do not shop for "2:30", they
+ * shop for "some evening this week". Empty parts of the day are dropped rather
+ * than shown empty.
+ */
+export function groupByPartOfDay(
+  slots: DaySlots['slots'], timezone: string
+): Array<{ label: string; slots: DaySlots['slots'] }> {
+  const buckets: Array<{ label: string; until: number; slots: DaySlots['slots'] }> = [
+    { label: 'Morning', until: 12, slots: [] },
+    { label: 'Afternoon', until: 17, slots: [] },
+    { label: 'Evening', until: 24, slots: [] },
+  ];
+
+  for (const slot of slots) {
+    // The business's hour, not the browser's: a client booking from out of
+    // state should still see their 6pm appointment under Evening.
+    // `hour12: false` reports midnight as 24 in some engines, so wrap it.
+    const hour = Number(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone, hour: 'numeric', hour12: false,
+      }).format(new Date(slot.startsAt))
+    ) % 24;
+    (buckets.find((b) => hour < b.until) ?? buckets[buckets.length - 1]).slots.push(slot);
+  }
+
+  return buckets.filter((b) => b.slots.length > 0).map(({ label, slots: s }) => ({ label, slots: s }));
+}
 
 /** One button per start time; the picker should read as times, not people. */
 function dedupeSlots(slots: DaySlots['slots']): DaySlots['slots'] {

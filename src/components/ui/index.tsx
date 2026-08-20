@@ -12,6 +12,7 @@
  */
 
 import * as React from 'react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 // --- Button -----------------------------------------------------------------
@@ -41,6 +42,27 @@ const buttonSizes: Record<ButtonSize, string> = {
   lg: 'h-12 px-6 text-base gap-2',
 };
 
+/**
+ * Shared so a link that looks like a button *is* an anchor rather than a
+ * `<button>` wrapped in one. That nesting is invalid HTML, and on iOS it
+ * produces two overlapping tap targets whose press states fight each other.
+ */
+function buttonClasses(
+  variant: ButtonVariant, size: ButtonSize, fullWidth?: boolean, className?: string
+): string {
+  return cn(
+    'inline-flex items-center justify-center rounded-[var(--radius-card)] font-medium',
+    'transition-[filter,background-color,opacity,transform] duration-150',
+    'disabled:opacity-50 disabled:pointer-events-none select-none',
+    // The press response native apps have and web buttons usually do not.
+    'active:scale-[0.975]',
+    buttonVariants[variant],
+    buttonSizes[size],
+    fullWidth && 'w-full',
+    className
+  );
+}
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -55,15 +77,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ref={ref}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={cn(
-        'inline-flex items-center justify-center rounded-[var(--radius-card)] font-medium',
-        'transition-[filter,background-color,opacity] duration-150',
-        'disabled:opacity-50 disabled:pointer-events-none select-none',
-        buttonVariants[variant],
-        buttonSizes[size],
-        fullWidth && 'w-full',
-        className
-      )}
+      className={buttonClasses(variant, size, fullWidth, className)}
       {...props}
     >
       {loading && <Spinner />}
@@ -72,6 +86,28 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   )
 );
 Button.displayName = 'Button';
+
+export interface ButtonLinkProps
+  extends Omit<React.ComponentPropsWithoutRef<typeof Link>, 'className'> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  fullWidth?: boolean;
+  className?: string;
+}
+
+/**
+ * A navigation target that looks like a button. Use this anywhere the tap goes
+ * somewhere; keep `Button` for taps that *do* something.
+ */
+export function ButtonLink({
+  className, variant = 'primary', size = 'md', fullWidth, children, ...props
+}: ButtonLinkProps) {
+  return (
+    <Link className={buttonClasses(variant, size, fullWidth, className)} {...props}>
+      {children}
+    </Link>
+  );
+}
 
 export function Spinner({ className }: { className?: string }) {
   return (

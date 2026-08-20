@@ -2,8 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { isSupabaseConfigured } from '@/lib/demo';
 import { brand } from '@/config/brand';
 import { vertical } from '@/config/verticals';
-import { Card, Button, Alert } from '@/components/ui';
-import Link from 'next/link';
+import { Alert, ButtonLink, Card } from '@/components/ui';
 import { Screen } from '@/components/app';
 
 export const metadata = { title: 'Confirm your appointment' };
@@ -84,12 +83,10 @@ export default async function ConfirmPage({
       )}
 
       <div className="mt-6 flex flex-col gap-2">
-        <Link href={`/account/appointments/${id}`}>
-          <Button fullWidth variant="secondary">Change or cancel</Button>
-        </Link>
-        <Link href="/">
-          <Button fullWidth variant="ghost">Back to {brand.shortName}</Button>
-        </Link>
+        <ButtonLink href={`/account/appointments/${id}`} fullWidth variant="secondary">
+          Change or cancel
+        </ButtonLink>
+        <ButtonLink href="/" fullWidth variant="ghost">Back to {brand.shortName}</ButtonLink>
       </div>
     </Shell>
   );

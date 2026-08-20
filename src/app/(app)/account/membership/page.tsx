@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { loadBrand } from '@/lib/brand';
@@ -6,7 +5,9 @@ import { isSupabaseConfigured } from '@/lib/demo';
 import { resolveRules } from '@/lib/rules';
 import { availableSaveOffers } from '@/lib/stripe/subscriptions';
 import { vertical } from '@/config/verticals';
-import { Alert, Button, Card, CardBody, CardHeader, Badge, EmptyState } from '@/components/ui';
+import {
+  Alert, Badge, ButtonLink, Card, CardBody, CardHeader, EmptyState,
+} from '@/components/ui';
 import { MembershipManager } from '@/components/booking/MembershipManager';
 import { formatMoney } from '@/lib/utils';
 import { Screen } from '@/components/app';
@@ -41,9 +42,14 @@ export default async function MembershipPage() {
           <p className="mt-2 text-[var(--color-muted)]">
             We&apos;ll email you a link — no password to remember.
           </p>
-          <Link href="/login?next=/account/membership" className="mt-6 block">
-            <Button fullWidth size="lg">Continue</Button>
-          </Link>
+          <ButtonLink
+            href="/login?next=/account/membership"
+            className="mt-6"
+            fullWidth
+            size="lg"
+          >
+            Continue
+          </ButtonLink>
         </div></Screen>
       </>
     );
@@ -62,7 +68,7 @@ export default async function MembershipPage() {
           <EmptyState
             title="No account yet"
             description={`Book your first ${vertical.visitNoun} and your membership options will show up here.`}
-            action={<Link href="/book"><Button>{brand.copy.bookCta}</Button></Link>}
+            action={<ButtonLink href="/book">{brand.copy.bookCta}</ButtonLink>}
           />
         </div></Screen>
       </>
@@ -98,9 +104,11 @@ export default async function MembershipPage() {
             title="You're not a member yet"
             description={brand.copy.membershipPitch}
             action={
-              <Link href="/memberships">
-                <Button>See {brand.copy.membershipName.toLowerCase()}s</Button>
-              </Link>
+              <ButtonLink
+                href="/memberships"
+              >
+                See {brand.copy.membershipName.toLowerCase()}s
+              </ButtonLink>
             }
           />
         </div></Screen>

@@ -17,16 +17,27 @@
  */
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { haptic } from './platform';
+import { FooterSlotContext } from './AppFrame';
+
+/**
+ * Back goes to a route, or — inside a multi-step flow — to the previous step.
+ * Both land in the same place in the bar, because to the person holding the
+ * phone they are the same gesture.
+ */
+export type BackTarget =
+  | { href: string; label?: string }
+  | { onClick: () => void; label?: string };
 
 export function Screen({
   title, subtitle, back, action, footer, children, largeTitle = true,
 }: {
   title: string;
   subtitle?: string;
-  back?: { href: string; label?: string };
+  back?: BackTarget;
   /** Trailing control in the bar — a phone link, an edit button. */
   action?: React.ReactNode;
   /** Pinned above the tab bar. The booking bar, a confirm button. */
@@ -37,6 +48,10 @@ export function Screen({
 }) {
   const [collapsed, setCollapsed] = React.useState(!largeTitle);
   const sentinel = React.useRef<HTMLDivElement>(null);
+
+  // The footer is rendered into the frame's slot, above the tab bar. See the
+  // note in AppFrame for why it cannot simply be `fixed` from in here.
+  const footerSlot = React.useContext(FooterSlotContext);
 
   React.useEffect(() => {
     if (!largeTitle) return;
@@ -66,26 +81,7 @@ export function Screen({
       >
         <div className="relative mx-auto flex h-[var(--header-height)] max-w-lg items-center gap-1 px-2">
           <div className="flex min-w-0 flex-1 items-center">
-            {back && (
-              <Link
-                href={back.href}
-                onClick={() => haptic()}
-                data-compact-target
-                data-press
-                className="-ml-1 flex items-center gap-0.5 rounded-lg py-1.5 pl-1 pr-2 text-[var(--color-brand)]"
-              >
-                <svg
-                  width="11" height="19" viewBox="0 0 11 19" aria-hidden
-                  fill="none" stroke="currentColor" strokeWidth={2.2}
-                  strokeLinecap="round" strokeLinejoin="round"
-                >
-                  <path d="M9.5 1.5 1.9 9.5l7.6 8" />
-                </svg>
-                <span className="truncate text-[17px] leading-none">
-                  {back.label ?? 'Back'}
-                </span>
-              </Link>
-            )}
+            {back && <BackControl back={back} />}
           </div>
 
           {/* Absolutely centred so a long back label cannot shove the title
@@ -129,22 +125,62 @@ export function Screen({
 
         {children}
 
-        {/* Clears the tab bar so the last row is never trapped underneath —
-            the most common "this is a website" bug. */}
-        <div
-          aria-hidden
-          style={{ height: 'calc(var(--chrome-bottom) + 1.5rem)' }}
-        />
+        {/* Breathing room under the last row, so nothing ends flush against
+            the chrome below it. */}
+        <div aria-hidden className="h-6" />
       </main>
 
-      {footer && (
-        <div
-          className="app-chrome hairline-t fixed inset-x-0 z-30 px-4 py-3"
-          style={{ bottom: 'var(--chrome-bottom)' }}
-        >
+      {/* No safe-area padding here: the tab bar sits below it and owns that. */}
+      {footer && footerSlot && createPortal(
+        <div className="app-chrome hairline-t px-4 py-3">
           <div className="mx-auto max-w-lg">{footer}</div>
-        </div>
+        </div>,
+        footerSlot
       )}
     </>
+  );
+}
+
+const BACK_CLASSES =
+  '-ml-1 flex items-center gap-0.5 rounded-lg py-1.5 pl-1 pr-2 text-[var(--color-brand)]';
+
+function BackControl({ back }: { back: BackTarget }) {
+  const inner = (
+    <>
+      <svg
+        width="11" height="19" viewBox="0 0 11 19" aria-hidden
+        fill="none" stroke="currentColor" strokeWidth={2.2}
+        strokeLinecap="round" strokeLinejoin="round"
+      >
+        <path d="M9.5 1.5 1.9 9.5l7.6 8" />
+      </svg>
+      <span className="truncate text-[17px] leading-none">{back.label ?? 'Back'}</span>
+    </>
+  );
+
+  if ('href' in back) {
+    return (
+      <Link
+        href={back.href}
+        onClick={() => haptic()}
+        data-compact-target
+        data-press
+        className={BACK_CLASSES}
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => { haptic(); back.onClick(); }}
+      data-compact-target
+      data-press
+      className={BACK_CLASSES}
+    >
+      {inner}
+    </button>
   );
 }

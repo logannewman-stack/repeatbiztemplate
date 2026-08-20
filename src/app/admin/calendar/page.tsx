@@ -1,9 +1,8 @@
-import Link from 'next/link';
 import { loadBrand } from '@/lib/brand';
 import { loadCalendar, weekRange } from '@/lib/admin/calendar';
 import { vertical } from '@/config/verticals';
 import { Calendar, type CalendarView } from '@/components/admin/Calendar';
-import { Button, Badge } from '@/components/ui';
+import { Badge, ButtonLink } from '@/components/ui';
 import { formatMoney } from '@/lib/utils';
 
 export const metadata = { title: 'Calendar' };
@@ -55,41 +54,54 @@ export default async function CalendarPage({
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)]">
-            <Link href={`/admin/calendar?view=${view}&date=${shift(-step)}`}>
-              <Button variant="ghost" size="sm" className="rounded-none" aria-label="Previous">←</Button>
-            </Link>
-            <Link href={`/admin/calendar?view=${view}&date=${todayInZone(timezone)}`}>
-              <Button variant="ghost" size="sm" className="rounded-none border-x border-[var(--color-border)]">
-                Today
-              </Button>
-            </Link>
-            <Link href={`/admin/calendar?view=${view}&date=${shift(step)}`}>
-              <Button variant="ghost" size="sm" className="rounded-none" aria-label="Next">→</Button>
-            </Link>
+            <ButtonLink
+              href={`/admin/calendar?view=${view}&date=${shift(-step)}`}
+              variant="ghost"
+              size="sm"
+              className="rounded-none"
+              aria-label="Previous"
+            >
+              ←
+            </ButtonLink>
+            <ButtonLink
+              href={`/admin/calendar?view=${view}&date=${todayInZone(timezone)}`}
+              variant="ghost"
+              size="sm"
+              className="rounded-none border-x border-[var(--color-border)]"
+            >
+              Today
+            </ButtonLink>
+            <ButtonLink
+              href={`/admin/calendar?view=${view}&date=${shift(step)}`}
+              variant="ghost"
+              size="sm"
+              className="rounded-none"
+              aria-label="Next"
+            >
+              →
+            </ButtonLink>
           </div>
 
           <div className="flex overflow-hidden rounded-[var(--radius-card)] border border-[var(--color-border)]">
-            <Link href={`/admin/calendar?view=day&date=${date}`}>
-              <Button
-                variant={view === 'day' ? 'primary' : 'ghost'}
-                size="sm" className="rounded-none"
-              >
-                Day
-              </Button>
-            </Link>
-            <Link href={`/admin/calendar?view=week&date=${date}`}>
-              <Button
-                variant={view === 'week' ? 'primary' : 'ghost'}
-                size="sm" className="rounded-none"
-              >
-                Week
-              </Button>
-            </Link>
+            <ButtonLink
+              href={`/admin/calendar?view=day&date=${date}`}
+              variant={view === 'day' ? 'primary' : 'ghost'}
+              size="sm"
+              className="rounded-none"
+            >
+              Day
+            </ButtonLink>
+            <ButtonLink
+              href={`/admin/calendar?view=week&date=${date}`}
+              variant={view === 'week' ? 'primary' : 'ghost'}
+              size="sm"
+              className="rounded-none"
+            >
+              Week
+            </ButtonLink>
           </div>
 
-          <Link href="/book">
-            <Button size="sm">New {vertical.visitNoun}</Button>
-          </Link>
+          <ButtonLink href="/book" size="sm">New {vertical.visitNoun}</ButtonLink>
         </div>
       </header>
 

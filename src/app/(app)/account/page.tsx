@@ -4,7 +4,9 @@ import { isSupabaseConfigured } from '@/lib/demo';
 import { brand } from '@/config/brand';
 import { vertical } from '@/config/verticals';
 import { rules } from '@/config/rules';
-import { Card, CardHeader, CardBody, Badge, Button, Alert, EmptyState } from '@/components/ui';
+import {
+  Alert, Badge, ButtonLink, Card, CardBody, CardHeader, EmptyState,
+} from '@/components/ui';
 import { formatMoney, relativeDays, daysBetween } from '@/lib/utils';
 import { Screen, NotificationSetting, ListGroup, ListRow } from '@/components/app';
 import { vapidPublicKey } from '@/lib/messaging/push';
@@ -39,9 +41,7 @@ export default async function AccountPage() {
           title={'Your account'}
           subtitle={`Everything about your ${vertical.visitNounPlural} in one place.`}
           footer={
-            <Link href="/login" className="block">
-              <Button fullWidth size="lg">Sign in with email</Button>
-            </Link>
+            <ButtonLink href="/login" fullWidth size="lg">Sign in with email</ButtonLink>
           }
         >
           <ListGroup>
@@ -93,7 +93,7 @@ export default async function AccountPage() {
           <EmptyState
             title="No bookings yet"
             description={`Book your first ${vertical.visitNoun} and it will show up here.`}
-            action={<Link href="/book"><Button>{brand.copy.bookCta}</Button></Link>}
+            action={<ButtonLink href="/book">{brand.copy.bookCta}</ButtonLink>}
           />
         </div>
 
@@ -195,9 +195,7 @@ export default async function AccountPage() {
                       : undefined
                   }
                 />
-                <Link href="/book">
-                  <Button fullWidth>{brand.copy.rebookCta}</Button>
-                </Link>
+                <ButtonLink href="/book" fullWidth>{brand.copy.rebookCta}</ButtonLink>
               </div>
             ) : (
               <ul className="space-y-3">
@@ -227,11 +225,15 @@ export default async function AccountPage() {
                         </Badge>
                       </div>
                       <div className="mt-3 flex gap-2">
-                        <Link href={`/account/appointments/${appointment.id}`} className="flex-1">
-                          <Button size="sm" variant="secondary" fullWidth>
-                            Change or cancel
-                          </Button>
-                        </Link>
+                        <ButtonLink
+                          href={`/account/appointments/${appointment.id}`}
+                          className="flex-1"
+                          size="sm"
+                          variant="secondary"
+                          fullWidth
+                        >
+                          Change or cancel
+                        </ButtonLink>
                       </div>
                     </li>
                   );
@@ -282,11 +284,15 @@ export default async function AccountPage() {
               )}
 
               <div className="mt-4 flex gap-2">
-                <Link href="/account/membership" className="flex-1">
-                  <Button size="sm" variant="secondary" fullWidth>
-                    Manage membership
-                  </Button>
-                </Link>
+                <ButtonLink
+                  href="/account/membership"
+                  className="flex-1"
+                  size="sm"
+                  variant="secondary"
+                  fullWidth
+                >
+                  Manage membership
+                </ButtonLink>
               </div>
             </CardBody>
           </Card>
@@ -299,11 +305,9 @@ export default async function AccountPage() {
               description={brand.copy.membershipPitch}
             />
             <CardBody>
-              <Link href="/memberships">
-                <Button variant="secondary" fullWidth>
-                  See {brand.copy.membershipName.toLowerCase()}s
-                </Button>
-              </Link>
+              <ButtonLink href="/memberships" variant="secondary" fullWidth>
+                See {brand.copy.membershipName.toLowerCase()}s
+              </ButtonLink>
             </CardBody>
           </Card>
         )}
@@ -336,9 +340,13 @@ export default async function AccountPage() {
                           {staffRow && ` · ${staffRow.display_name}`}
                         </p>
                       </div>
-                      <Link href={`/book?service=${appointment.service_id}&staff=${appointment.staff_id ?? ''}`}>
-                        <Button size="sm" variant="ghost">Book again</Button>
-                      </Link>
+                      <ButtonLink
+                        href={`/book?service=${appointment.service_id}&staff=${appointment.staff_id ?? ''}`}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        Book again
+                      </ButtonLink>
                     </li>
                   );
                 })}

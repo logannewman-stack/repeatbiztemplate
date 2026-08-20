@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { loadBrand } from '@/lib/brand';
@@ -7,7 +6,7 @@ import { isSupabaseConfigured } from '@/lib/demo';
 import { resolveRules } from '@/lib/rules';
 import { evaluateCancellation, evaluateReschedule } from '@/lib/booking/cancellation';
 import { vertical } from '@/config/verticals';
-import { Alert, Button } from '@/components/ui';
+import { Alert, ButtonLink } from '@/components/ui';
 import { ManageAppointment } from '@/components/booking/ManageAppointment';
 import { Screen } from '@/components/app';
 
@@ -105,9 +104,7 @@ export default async function ManageAppointmentPage({
             <p className="text-[var(--color-muted)]">
               Nothing more to do here. Book a new one any time.
             </p>
-            <Link href="/book">
-              <Button size="lg">{brand.copy.bookCta}</Button>
-            </Link>
+            <ButtonLink href="/book" size="lg">{brand.copy.bookCta}</ButtonLink>
           </div>
         ) : (
           <ManageAppointment

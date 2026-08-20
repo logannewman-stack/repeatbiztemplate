@@ -1,8 +1,7 @@
-import Link from 'next/link';
 import { brand } from '@/config/brand';
 import { vertical } from '@/config/verticals';
 import { rules } from '@/config/rules';
-import { Card, Badge, Button, Alert } from '@/components/ui';
+import { Alert, Badge, ButtonLink, Card } from '@/components/ui';
 import { demoPlans, demoServices } from '@/lib/demo';
 import { formatMoney } from '@/lib/utils';
 import { Screen } from '@/components/app';
@@ -64,11 +63,15 @@ export default function MembershipsPage() {
                   ))}
                 </ul>
 
-                <Link href={`/book?plan=${plan.slug}`} className="mt-6 block">
-                  <Button fullWidth size="lg" variant={i === 1 ? 'primary' : 'secondary'}>
-                    Join {plan.name}
-                  </Button>
-                </Link>
+                <ButtonLink
+                  href={`/book?plan=${plan.slug}`}
+                  className="mt-6"
+                  fullWidth
+                  size="lg"
+                  variant={i === 1 ? 'primary' : 'secondary'}
+                >
+                  Join {plan.name}
+                </ButtonLink>
               </Card>
             );
           })}

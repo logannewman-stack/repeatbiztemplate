@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { loadDashboardKpis, loadDueClients } from '@/lib/admin/queries';
 import { vertical } from '@/config/verticals';
-import { Card, CardHeader, CardBody, Badge, Button, Alert, EmptyState } from '@/components/ui';
+import {
+  Alert, Badge, ButtonLink, Card, CardBody, CardHeader, EmptyState,
+} from '@/components/ui';
 import { formatMoney, fullName, relativeDays } from '@/lib/utils';
 
 export default async function AdminDashboard() {
@@ -88,9 +90,13 @@ export default async function AdminDashboard() {
             title="Who to call today"
             description="Ranked by what winning them back is worth, not by how late they are."
             action={
-              <Link href="/admin/retention">
-                <Button size="sm" variant="secondary">See all</Button>
-              </Link>
+              <ButtonLink
+                href="/admin/retention"
+                size="sm"
+                variant="secondary"
+              >
+                See all
+              </ButtonLink>
             }
           />
           <CardBody>
@@ -161,11 +167,9 @@ export default async function AdminDashboard() {
             />
 
             <div className="pt-2">
-              <Link href="/admin/campaigns">
-                <Button size="sm" variant="secondary" fullWidth>
-                  Review automations
-                </Button>
-              </Link>
+              <ButtonLink href="/admin/campaigns" size="sm" variant="secondary" fullWidth>
+                Review automations
+              </ButtonLink>
             </div>
           </CardBody>
         </Card>
