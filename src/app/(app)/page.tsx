@@ -132,16 +132,15 @@ export default async function HomePage() {
     <Screen title={brand.name} subtitle={brand.tagline}>
       {!live && (
         <div className="px-4 pb-1 pt-1">
-          <Link
-            href="/admin/setup"
-            className="flex min-h-[var(--tap-min)] items-center gap-2 rounded-full bg-[var(--color-warning-soft)] px-3.5 py-2 text-[12px] leading-none"
-          >
+          {/* No link out: the back office is a separate deployment on a
+              different domain, and a customer has no business being pointed
+              at it. See the README on standing one up. */}
+          <p className="flex min-h-[var(--tap-min)] items-center gap-2 rounded-full bg-[var(--color-warning-soft)] px-3.5 py-2 text-[12px] leading-none">
             <span className="size-1.5 shrink-0 rounded-full bg-[var(--color-warning)]" />
             <span className="min-w-0 flex-1 truncate">
               Demo mode &middot; {vertical.label} preset
             </span>
-            <span className="shrink-0 font-medium opacity-70">Set up →</span>
-          </Link>
+          </p>
         </div>
       )}
 

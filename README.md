@@ -11,6 +11,49 @@ price, and photo is a placeholder — the demo business is "123 Example Studio".
 
 ---
 
+## Two repos, one product
+
+This repo is the app a **customer** books in. The staff side — calendar,
+checkout, clients, retention, campaigns, reports, the Impact screen — is a
+separate repo and a separate deployment:
+
+> **[repeatbizadmintemplate](https://github.com/logannewman-stack/repeatbizadmintemplate)** — the back office.
+
+They share a Supabase project, a Stripe account and a copied component library.
+At runtime they share nothing.
+
+| | This repo | Back office |
+|---|---|---|
+| Who opens it | a customer, on a phone | an owner or front desk, on a laptop |
+| Shape | phone-sized, tab bar, installable | wide screen with a sidebar |
+| Auth | optional — guest booking is the default | required, staff only |
+| Deployed at | `book.theirsalon.com` | `admin.theirsalon.com` |
+| Scheduled jobs | yes | no |
+| Service-role key | yes, server-only | yes, server-only |
+
+Why split them: a customer cannot reach the back office by guessing a URL,
+because those routes are not in the bundle they downloaded. And a change to a
+report does not redeploy the app somebody has open mid-booking.
+
+### One client, end to end
+
+Both repos are templates. A client gets a branch of the same name in each.
+
+```bash
+git checkout -b client/example-studio main   # here
+git checkout -b client/example-studio main   # and in the admin repo
+```
+
+One Supabase project serves both. Copy the same edits to `src/config/brand.ts`,
+`verticals.ts` and `rules.ts` into both branches, then create two Vercel
+projects from the two branches. Pull template improvements in later with
+`git merge main`.
+
+Keep the branch names identical across the two repos — it is the only thing
+tying a client's two deployments together.
+
+---
+
 ## What it is actually for
 
 Most booking software sells calendars. Calendars are table stakes. This
@@ -44,7 +87,7 @@ who slip — with one specific suggested time, not a link to an empty calendar.
 
 | Layer | Choice | Why |
 |---|---|---|
-| App | Next.js 15 (App Router), React 19, TypeScript | One deployable, server components for the data-heavy admin |
+| App | Next.js 15 (App Router), React 19, TypeScript | Server components keep the booking payload small on a phone |
 | Styling | Tailwind CSS v4 | CSS-variable theming, so brand changes need no rebuild of tokens |
 | Database | Supabase (Postgres + Auth + Storage + RLS) | Row-level security means the client portal is safe by construction |
 | Payments | Stripe (Checkout, Billing, webhooks) | Subscriptions, deposits, stored-card fee collection |
@@ -62,7 +105,7 @@ npm run dev
 
 Open <http://localhost:3000>. **No database, no Stripe account, no `.env` file
 needed.** Demo mode serves the catalog from `src/config/verticals.ts`, so the
-whole booking flow and the admin dashboard are clickable immediately.
+whole booking flow is clickable immediately.
 
 Change `vertical` in `src/config/brand.ts` to `hair_salon`, `med_spa`,
 `massage`, or any of the other 14 presets, reload, and the entire app re-skins:
@@ -80,7 +123,7 @@ Full walkthrough in **[SETUP.md](./SETUP.md)**. The short version:
 
 1. **Supabase** — create a project, run the migrations, seed.
 2. **Deploy** to Vercel with the Supabase keys.
-3. **Open `/admin/setup`** and fill in the wizard — everything below is done in
+3. **Open `/setup` in the back office repo** and fill in the wizard — everything below is done in
    the browser, and takes effect immediately with no redeploy:
    - business name, type, contact details, timezone, tax rate
    - logo, app icon, hero photo, and one brand color (the rest of the palette
@@ -143,7 +186,8 @@ else to launch a client, that is a bug in the template.
 ### `src/config/brand.ts`
 Name, tagline, colors (OKLCH), fonts, contact details, asset paths, and the
 copy for the money moments. Colors are emitted as CSS custom properties, so
-one edit re-themes the client portal, the admin, and the emails.
+one edit re-themes the client app and the emails. Copy the same file into
+the back office branch to re-theme that too.
 
 ### `src/config/verticals.ts`
 Sixteen presets. Each carries the vocabulary (client vs. patient, stylist vs.
@@ -222,7 +266,7 @@ What that buys, and where it lives:
 | No tap highlight, no rubber-band, 44pt targets | the native layer in `globals.css` |
 
 Client routes live in the `src/app/(app)/` route group so they share that
-shell. A route group changes no URLs — `/book` is still `/book`. Admin sits
+shell. A route group changes no URLs — `/book` is still `/book`. The back office sits
 outside it deliberately: a manager on a laptop wants a dense tool, not a phone.
 
 ### App icons
@@ -316,12 +360,10 @@ src/
     stripe/        Checkout, subscriptions, save flow
     messaging/     Template rendering, email + SMS adapters
     supabase/      Browser, server, and service-role clients
-    admin/         Dashboard, calendar, reporting queries, and authorization
     cron-jobs/     The seven automations, plus the registry the dispatcher reads
   app/
     (public)       Landing, booking, memberships, policies, gift cards
     account/       Client portal
-    admin/         Operator dashboard
     api/           Booking, availability, Stripe webhook, cron jobs
 supabase/
   migrations/      Twelve migrations — schema, functions, views, RLS, storage
@@ -333,7 +375,7 @@ supabase/
 
 ## Before you launch anything
 
-Placeholders that must be replaced — the Settings page in the admin lists these
+Placeholders that must be replaced — the Settings page in the back office lists these
 too:
 
 - Brand, logo, icons, and hero image

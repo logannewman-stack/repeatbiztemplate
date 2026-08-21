@@ -10,18 +10,21 @@ function supabaseConfigured(): boolean {
   return Boolean(url && key && !url.includes('REPLACE_ME'));
 }
 
-const ADMIN_PREFIX = '/admin';
 const ACCOUNT_PREFIX = '/account';
 
 /**
- * Refreshes the auth session on every request and gates the protected areas.
+ * Refreshes the auth session on every request and gates the client's own area.
+ *
+ * There is no staff surface in this app any more — the back office is a
+ * separate deployment on its own domain, with its own middleware and its own
+ * sign-in. Nothing here should ever grow a `/admin` branch again; that is the
+ * whole point of the split.
  *
  * Two behaviors worth being explicit about:
  *
- *   1. Demo mode (no Supabase configured) leaves /admin open. There is no
- *      database, so the dashboard is rendering hard-coded illustrative
- *      figures and there is nothing to protect. Every admin page shows a
- *      "demo data" banner in this state.
+ *   1. Demo mode (no Supabase configured) leaves /account open. There is no
+ *      database, so those screens render illustrative sample data and there
+ *      is nothing to protect.
  *
  *   2. Once Supabase IS configured, this fails CLOSED. Any error evaluating
  *      the session — network failure, expired token, misconfigured keys —
@@ -30,8 +33,7 @@ const ACCOUNT_PREFIX = '/account';
  */
 export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const needsAuth =
-    path.startsWith(ADMIN_PREFIX) || path.startsWith(ACCOUNT_PREFIX);
+  const needsAuth = path.startsWith(ACCOUNT_PREFIX);
 
   if (!supabaseConfigured()) {
     if (needsAuth) {
@@ -78,26 +80,6 @@ export async function updateSession(request: NextRequest) {
 
     if (!needsAuth) return response;
     if (error || !user) return signIn();
-
-    if (path.startsWith(ADMIN_PREFIX)) {
-      const { data: staff, error: staffError } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('active', true)
-        .maybeSingle();
-
-      if (staffError) return signIn();
-
-      if (!staff) {
-        // Signed in, but not staff. Send them to their own portal rather than
-        // to a login screen they have already passed.
-        const url = request.nextUrl.clone();
-        url.pathname = '/account';
-        url.search = '';
-        return NextResponse.redirect(url);
-      }
-    }
 
     return response;
   } catch {

@@ -1,5 +1,12 @@
 # Standing up a client
 
+> **Two repos.** This one is the app your customer books in. The staff side —
+> calendar, checkout, clients, retention, reports — lives in
+> [repeatbizadmintemplate](https://github.com/logannewman-stack/repeatbizadmintemplate)
+> and deploys separately to its own domain. Give the client a branch of the
+> same name in both, point both at one Supabase project, and work through this
+> guide with both checked out. Steps below that say "back office" happen there.
+
 Start to finish for one business. Roughly half a day the first time; an hour or
 two once you have a rhythm.
 
@@ -27,11 +34,11 @@ npm run dev
 
 ## 1. Two ways to configure
 
-Everything client-specific can be set **in the browser** at `/admin/setup`
+Everything client-specific can be set **in the browser**, at `/setup` in the back office
 once Supabase is connected, or **in code** before you deploy. Both write to the
 same places; the database wins at runtime.
 
-| | Browser (`/admin/setup`) | Code (`src/config/*`) |
+| | Back office `/setup` | Code (`src/config/*`) |
 |---|---|---|
 | Takes effect | Immediately | Next deploy |
 | Who can do it | The client, or you | You |
@@ -198,7 +205,7 @@ npm run db:types
 
 ## 4b. Run the setup wizard — 20 minutes
 
-With Supabase connected, open **`/admin/setup`** and work through the five
+With Supabase connected, open **`/setup` in the back office** and work through the five
 steps. This is where a client build actually gets configured:
 
 1. **Business** — name, type, contact, address, timezone, currency, tax rate.
