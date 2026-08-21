@@ -8,6 +8,7 @@ export { NextVisitCard } from './NextVisitCard';
 export { LoyaltyCard, tierFor, type LoyaltyTier } from './LoyaltyCard';
 export { PullToRefresh } from './PullToRefresh';
 export { InstallPrompt } from './InstallPrompt';
+export { DesktopCaption } from './DesktopCaption';
 export { NotificationSetting } from './NotificationSetting';
 export { usePush, type PushState, type PushStatus } from './push';
 export { ServiceWorkerRegistrar } from './ServiceWorkerRegistrar';

@@ -105,6 +105,7 @@ export function InstallPrompt({ appName }: { appName: string }) {
 
   return (
     <div
+      data-mobile-only
       className="animate-fade-in fixed inset-x-0 bottom-0 z-50 px-3"
       style={{ paddingBottom: 'calc(var(--chrome-bottom) + 0.75rem)' }}
       role="dialog"

@@ -13,6 +13,7 @@
 import * as React from 'react';
 import { loadBrand } from '@/lib/brand';
 import { AppFrame } from './AppFrame';
+import { DesktopCaption } from './DesktopCaption';
 import type { TabItem } from './TabBar';
 
 /** A tab label has ~64px of width. Anything longer truncates and looks broken. */
@@ -47,5 +48,10 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     },
   ];
 
-  return <AppFrame tabs={tabs}>{children}</AppFrame>;
+  return (
+    <>
+      <AppFrame tabs={tabs}>{children}</AppFrame>
+      <DesktopCaption businessName={brand.name} />
+    </>
+  );
 }

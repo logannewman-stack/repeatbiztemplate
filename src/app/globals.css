@@ -43,6 +43,13 @@
 
   --radius-card: 0.75rem;
 
+  /* The desktop phone frame. A bezel is a physical object, so it stays dark
+     whichever theme the app inside is running — derived from --color-fg it
+     turned white in dark mode, and the drop shadow became a halo. */
+  --phone-bezel-color: oklch(0.20 0.006 72);
+  --phone-bezel-edge: oklch(0.42 0.008 72);
+  --phone-shadow: oklch(0.12 0.01 62 / 0.42);
+
   --font-heading: var(--font-display), "Iowan Old Style", Georgia, serif;
   --font-body: var(--font-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -59,9 +66,16 @@
     --color-success-soft: oklch(0.26 0.04 155);
     --color-warning-soft: oklch(0.28 0.05 75);
     --color-danger-soft: oklch(0.27 0.05 25);
+  --phone-bezel-color: oklch(0.255 0.006 72);
+  --phone-bezel-edge: oklch(0.40 0.008 72);
+  --phone-shadow: oklch(0 0 0 / 0.72);
     --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
     --shadow-md: 0 1px 2px oklch(0 0 0 / 0.4), 0 6px 16px -8px oklch(0 0 0 / 0.6);
     --shadow-lg: 0 1px 2px oklch(0 0 0 / 0.4), 0 12px 32px -12px oklch(0 0 0 / 0.7);
+    /* Lifted just enough to separate from the backdrop without going grey. */
+    --phone-bezel-color: oklch(0.255 0.006 72);
+    --phone-bezel-edge: oklch(0.40 0.008 72);
+    --phone-shadow: oklch(0 0 0 / 0.72);
   }
 }
 
@@ -276,6 +290,87 @@ button, [role="button"], a[role="button"], [role="tab"] {
   overflow-wrap: anywhere;
 }
 .app-scroll::-webkit-scrollbar { width: 0; height: 0; }
+
+/* --- Desktop: the app, in a phone, in the middle of the screen -------------
+   A booking app stretched across a 27-inch monitor tells an owner nothing
+   about the thing they are buying — their clients will never see that. On a
+   pointer device with room for it, the frame becomes a phone sitting on a
+   tinted backdrop, at the size it actually ships at.
+
+   Gated on `pointer: fine` as well as size, so an iPad in landscape keeps the
+   full-bleed layout it should have. `position: fixed` with `inset: 0` and
+   `margin: auto` centres it without touching body layout, which matters
+   because admin shares this stylesheet and must stay full width. */
+
+/* Hidden until the media query below turns it on. Declared first because both
+   rules have the same specificity, so whichever comes last would win. */
+.desktop-caption { display: none; }
+
+@media (min-width: 1024px) and (min-height: 700px) and (pointer: fine) {
+  :root {
+    --phone-width: 390px;
+    --phone-height: 844px;
+    --phone-radius: 2.75rem;
+    --phone-bezel: 10px;
+  }
+
+  body:has(.app-frame) {
+    /* Derived from the client's own brand, at a chroma low enough that any
+       hue they pick still reads as a calm surface rather than a colour field. */
+    background:
+      /* A vignette so the phone reads as sitting on a surface rather than
+         floating on a flat field. */
+      radial-gradient(
+        80% 65% at 50% 45%,
+        transparent 0%,
+        color-mix(in oklab, var(--color-fg) 7%, transparent) 100%
+      ),
+      radial-gradient(
+        130% 95% at 50% -10%,
+        color-mix(in oklab, var(--color-brand) 26%, var(--color-bg)) 0%,
+        color-mix(in oklab, var(--color-brand) 7%, var(--color-bg)) 55%,
+        var(--color-bg) 100%
+      ),
+      var(--color-bg);
+    background-attachment: fixed;
+  }
+
+  .app-frame {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: var(--phone-width);
+    /* Shrink before overflowing on a short laptop screen. The 11rem is not
+       arbitrary: it leaves at least 5.5rem above and below once `margin: auto`
+       splits the difference, which is the room the caption needs to sit under
+       the phone rather than on top of the tab bar. */
+    height: min(var(--phone-height), calc(100dvh - 12.5rem));
+    max-width: calc(100vw - 4rem);
+
+    background: var(--color-bg);
+    border-radius: var(--phone-radius);
+    /* The bezel is a ring rather than a border so it never eats layout width
+       and the 390px inside stays a true 390px. */
+    box-shadow:
+      0 0 0 var(--phone-bezel) var(--phone-bezel-color),
+      0 0 0 calc(var(--phone-bezel) + 1.5px) var(--phone-bezel-edge),
+      0 34px 80px -26px var(--phone-shadow),
+      0 10px 26px -14px var(--phone-shadow);
+  }
+
+  /* The tab bar sits against the bezel, so its corners have to follow it. */
+  .app-frame > nav:last-child {
+    border-bottom-left-radius: calc(var(--phone-radius) - var(--phone-bezel));
+    border-bottom-right-radius: calc(var(--phone-radius) - var(--phone-bezel));
+  }
+
+  .desktop-caption { display: block; }
+
+  /* An install prompt on a desktop browser is noise here — this view exists to
+     show what the phone looks like, and the prompt would float outside it. */
+  [data-mobile-only] { display: none !important; }
+}
+
 
 /* --- Chrome --------------------------------------------------------------- */
 
