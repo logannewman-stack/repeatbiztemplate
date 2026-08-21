@@ -293,38 +293,54 @@ button, [role="button"], a[role="button"], [role="tab"] {
 
 /* --- Desktop: the app, in a phone, in the middle of the screen -------------
    A booking app stretched across a 27-inch monitor tells an owner nothing
-   about the thing they are buying — their clients will never see that. On a
-   pointer device with room for it, the frame becomes a phone sitting on a
-   tinted backdrop, at the size it actually ships at.
+   about what they are buying — their clients will never see that. On a pointer
+   device with room for it, the frame becomes a phone on a tinted backdrop.
+
+   The important part is that it stays a *true* phone. An earlier version let
+   the frame shrink vertically to fit the window, which produced a 390x724 box
+   — not an iPhone shape, and showing more of the page than a real phone ever
+   would. That is a misleading preview. The viewport inside is now always
+   390x844; when the window is short the whole thing is scaled down instead,
+   so what an owner sees is exactly what their client sees, just smaller.
 
    Gated on `pointer: fine` as well as size, so an iPad in landscape keeps the
    full-bleed layout it should have. `position: fixed` with `inset: 0` and
-   `margin: auto` centres it without touching body layout, which matters
-   because admin shares this stylesheet and must stay full width. */
+   `margin: auto` centres it without touching body layout — the back office is
+   a separate app now, but this still has to leave admin-shaped pages alone. */
 
 /* Hidden until the media query below turns it on. Declared first because both
-   rules have the same specificity, so whichever comes last would win. */
+   rules have the same specificity, so whichever came last would win. */
 .desktop-caption { display: none; }
 
-@media (min-width: 1024px) and (min-height: 700px) and (pointer: fine) {
+@media (min-width: 1024px) and (min-height: 640px) and (pointer: fine) {
   :root {
     --phone-width: 390px;
     --phone-height: 844px;
-    --phone-radius: 2.75rem;
-    --phone-bezel: 10px;
+    --phone-radius: 3.25rem;
+    --phone-bezel: 11px;
+    /* Overridden by the ladder below. Each step leaves ~160px of vertical
+       room, which is what the caption underneath needs. */
+    --phone-scale: 0.55;
+
+    /* A real iPhone reserves these for the island and the home indicator, and
+       the app already pads against them. Setting them here means the preview
+       shows the installed app, spacing and all, rather than a version of it
+       with the chrome pretended away. */
+    --safe-top: 54px;
+    --safe-bottom: 34px;
   }
 
   body:has(.app-frame) {
-    /* Derived from the client's own brand, at a chroma low enough that any
-       hue they pick still reads as a calm surface rather than a colour field. */
     background:
-      /* A vignette so the phone reads as sitting on a surface rather than
+      /* A vignette, so the phone reads as sitting on a surface rather than
          floating on a flat field. */
       radial-gradient(
         80% 65% at 50% 45%,
         transparent 0%,
         color-mix(in oklab, var(--color-fg) 7%, transparent) 100%
       ),
+      /* Tinted from the client's own brand, at a chroma low enough that any
+         hue they pick still reads as a calm surface rather than a colour field. */
       radial-gradient(
         130% 95% at 50% -10%,
         color-mix(in oklab, var(--color-brand) 26%, var(--color-bg)) 0%,
@@ -339,13 +355,10 @@ button, [role="button"], a[role="button"], [role="tab"] {
     position: fixed;
     inset: 0;
     margin: auto;
+    /* Fixed, always. The scale below is what makes it fit. */
     width: var(--phone-width);
-    /* Shrink before overflowing on a short laptop screen. The 11rem is not
-       arbitrary: it leaves at least 5.5rem above and below once `margin: auto`
-       splits the difference, which is the room the caption needs to sit under
-       the phone rather than on top of the tab bar. */
-    height: min(var(--phone-height), calc(100dvh - 12.5rem));
-    max-width: calc(100vw - 4rem);
+    height: var(--phone-height);
+    transform: scale(var(--phone-scale));
 
     background: var(--color-bg);
     border-radius: var(--phone-radius);
@@ -354,8 +367,40 @@ button, [role="button"], a[role="button"], [role="tab"] {
     box-shadow:
       0 0 0 var(--phone-bezel) var(--phone-bezel-color),
       0 0 0 calc(var(--phone-bezel) + 1.5px) var(--phone-bezel-edge),
-      0 34px 80px -26px var(--phone-shadow),
-      0 10px 26px -14px var(--phone-shadow);
+      0 40px 90px -30px var(--phone-shadow),
+      0 12px 30px -16px var(--phone-shadow);
+  }
+
+  /* The Dynamic Island, over the top of everything. The app pads against
+     --safe-top above, so it sits in reserved space rather than on content. */
+  .app-frame::before {
+    content: '';
+    position: absolute;
+    top: 11px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 124px;
+    height: 35px;
+    border-radius: 999px;
+    background: #0b0b0c;
+    z-index: 60;
+    pointer-events: none;
+  }
+
+  /* The home indicator. Drawn from the foreground token so it stays visible
+     on a dark tab bar as well as a light one. */
+  .app-frame::after {
+    content: '';
+    position: absolute;
+    bottom: 9px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 138px;
+    height: 5px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-fg) 45%, transparent);
+    z-index: 60;
+    pointer-events: none;
   }
 
   /* The tab bar sits against the bezel, so its corners have to follow it. */
@@ -371,6 +416,23 @@ button, [role="button"], a[role="button"], [role="tab"] {
   [data-mobile-only] { display: none !important; }
 }
 
+/* The scale ladder. Ascending, so the largest matching step wins — each one is
+   about (viewport height - 160px) / 868, which is the phone plus its bezel
+   plus the room the caption needs underneath. */
+@media (min-width: 1024px) and (pointer: fine) {
+  @media (min-height: 700px)  { :root { --phone-scale: 0.62; } }
+  @media (min-height: 760px)  { :root { --phone-scale: 0.69; } }
+  @media (min-height: 820px)  { :root { --phone-scale: 0.76; } }
+  @media (min-height: 880px)  { :root { --phone-scale: 0.83; } }
+  @media (min-height: 940px)  { :root { --phone-scale: 0.90; } }
+  @media (min-height: 1000px) { :root { --phone-scale: 0.96; } }
+  @media (min-height: 1060px) { :root { --phone-scale: 1; } }
+  /* Past life size on a big desk display, where a phone at 1:1 is a stamp in
+     the middle of the screen. Held closer, not blown up: 1.25 is still
+     recognisably a phone. */
+  @media (min-height: 1150px) { :root { --phone-scale: 1.1; } }
+  @media (min-height: 1320px) { :root { --phone-scale: 1.25; } }
+}
 
 /* --- Chrome --------------------------------------------------------------- */
 
