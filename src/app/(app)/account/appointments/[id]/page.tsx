@@ -9,6 +9,7 @@ import { vertical } from '@/config/verticals';
 import { Alert, ButtonLink } from '@/components/ui';
 import { ManageAppointment } from '@/components/booking/ManageAppointment';
 import { Screen } from '@/components/app';
+import { isSetupMode } from '@/lib/setup-mode';
 
 export const metadata = { title: 'Manage appointment' };
 export const dynamic = 'force-dynamic';
@@ -25,10 +26,17 @@ export default async function ManageAppointmentPage({
     return (
       <>
         <Screen title={'Appointment'} back={{ href: '/account' }}><div className="px-4">
-          <Alert tone="warning" title="Demo mode">
-            Managing a booking needs a database. Connect Supabase — see{' '}
-            <code>SETUP.md</code>.
-          </Alert>
+          {isSetupMode() ? (
+            <Alert tone="warning" title="Demo mode">
+              Managing a booking needs a database. Connect Supabase — see{' '}
+              <code>SETUP.md</code>.
+            </Alert>
+          ) : (
+            <Alert tone="neutral" title="Sign in to change this booking">
+              We keep changes behind a sign-in so nobody else can move your
+              appointment. We&apos;ll email you a link.
+            </Alert>
+          )}
         </div></Screen>
       </>
     );

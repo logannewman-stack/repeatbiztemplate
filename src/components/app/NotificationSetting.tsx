@@ -22,6 +22,7 @@ import * as React from 'react';
 import { usePush } from './push';
 import { haptic } from './platform';
 import { cn } from '@/lib/utils';
+import { isSetupMode } from '@/lib/setup-mode';
 
 export function NotificationSetting({
   vapidPublicKey,
@@ -38,6 +39,7 @@ export function NotificationSetting({
   preview?: boolean;
 }) {
   const { state, busy, error, enable, disable } = usePush(vapidPublicKey);
+  const setupHints = isSetupMode();
 
   // Nothing to configure and nothing useful to say about it.
   if (state === 'unsupported' && !preview) return null;
@@ -111,9 +113,18 @@ export function NotificationSetting({
         {previewing && (
           <div className="border-t border-[var(--color-border)] px-4 py-3">
             <p className="text-[13px] leading-snug text-[var(--color-muted)]">
-              Reminders, waitlist offers and rebooking nudges land on the lock
-              screen at no per-message cost, unlike a text. Add your keys and
-              this switch goes live — see <code>SETUP.md</code>.
+              {setupHints ? (
+                <>
+                  Reminders, waitlist offers and rebooking nudges land on the
+                  lock screen at no per-message cost, unlike a text. Add your
+                  keys and this switch goes live — see <code>SETUP.md</code>.
+                </>
+              ) : (
+                <>
+                  Reminders and waitlist offers land on your lock screen, so you
+                  never miss a slot opening up.
+                </>
+              )}
             </p>
           </div>
         )}

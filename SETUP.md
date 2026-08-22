@@ -7,6 +7,12 @@
 > same name in both, point both at one Supabase project, and work through this
 > guide with both checked out. Steps below that say "back office" happen there.
 
+> **Showing this to a prospect?** Deploy it with no Supabase configured and it
+> runs as a working demo with sample data throughout, and no setup banners —
+> those only appear under `npm run dev`, or when you set
+> `NEXT_PUBLIC_SETUP_HINTS=1`. Turn that on while you configure a real client,
+> and take it off before they open the link.
+
 Start to finish for one business. Roughly half a day the first time; an hour or
 two once you have a rhythm.
 

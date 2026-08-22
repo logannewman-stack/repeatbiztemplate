@@ -21,7 +21,33 @@ import { slugify } from '@/lib/utils';
 
 export function isSupabaseConfigured(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  return Boolean(url && !url.includes('REPLACE_ME'));
+  const configured = Boolean(url && !url.includes('REPLACE_ME'));
+  if (!configured) warnOnce();
+  return configured;
+}
+
+/**
+ * The developer signal, moved rather than removed.
+ *
+ * A production build hides the on-screen "Demo mode" banners, because those
+ * builds are what a prospective owner is shown and the banners are the moment
+ * it stops looking like a product. This is where the warning goes instead: a
+ * developer sees it in their terminal on the first render, and nobody in a
+ * meeting ever does.
+ *
+ * Once per process, not once per request, or a busy demo fills the log.
+ */
+let warned = false;
+function warnOnce(): void {
+  if (warned || typeof window !== 'undefined') return;
+  warned = true;
+  console.warn(
+    '\n[demo mode] NEXT_PUBLIC_SUPABASE_URL is not set, so every screen is\n' +
+    '            rendering illustrative sample data. Nothing is being saved.\n' +
+    '            See SETUP.md to connect a project.\n' +
+    '            On-screen setup hints are hidden in production builds; set\n' +
+    '            NEXT_PUBLIC_SETUP_HINTS=1 to show them on a deployment.\n'
+  );
 }
 
 export const DEMO_BUSINESS_ID = '00000000-0000-0000-0000-000000000001';

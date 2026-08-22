@@ -3,6 +3,7 @@ import { Card, Button, Alert } from '@/components/ui';
 import { formatMoney } from '@/lib/utils';
 import { isStripeConfigured } from '@/lib/stripe/client';
 import { Screen } from '@/components/app';
+import { isSetupMode } from '@/lib/setup-mode';
 
 export const metadata = {
   title: 'Gift cards',
@@ -22,10 +23,17 @@ export default function GiftCardsPage() {
       ><div className="px-4">
 
         {!canSell && (
-          <Alert tone="warning" title="Payments not configured">
-            Gift card sales need Stripe. Add <code>STRIPE_SECRET_KEY</code> to
-            enable this page — see <code>SETUP.md</code>.
-          </Alert>
+          isSetupMode() ? (
+            <Alert tone="warning" title="Payments not configured">
+              Gift card sales need Stripe. Add <code>STRIPE_SECRET_KEY</code> to
+              enable this page — see <code>SETUP.md</code>.
+            </Alert>
+          ) : (
+            <Alert tone="neutral" title="Gift cards are sold in the studio">
+              Ask at the front desk, or give us a call and we&apos;ll set one up
+              over the phone.
+            </Alert>
+          )
         )}
 
         <Card className="mt-8 p-6">

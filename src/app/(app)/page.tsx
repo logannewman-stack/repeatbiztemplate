@@ -9,6 +9,7 @@ import { loadCatalog } from '@/lib/booking/queries';
 import { formatMoney, formatDuration, cn } from '@/lib/utils';
 import { Screen, ListGroup, ListLink, NextVisitCard } from '@/components/app';
 import { loadNextVisit, type NextVisit } from '@/lib/booking/next-visit';
+import { isSetupMode } from '@/lib/setup-mode';
 
 export const revalidate = 60;
 
@@ -130,7 +131,7 @@ export default async function HomePage() {
 
   return (
     <Screen title={brand.name} subtitle={brand.tagline}>
-      {!live && (
+      {!live && isSetupMode() && (
         <div className="px-4 pb-1 pt-1">
           {/* No link out: the back office is a separate deployment on a
               different domain, and a customer has no business being pointed

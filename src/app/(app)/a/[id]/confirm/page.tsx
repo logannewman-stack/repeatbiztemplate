@@ -4,6 +4,7 @@ import { brand } from '@/config/brand';
 import { vertical } from '@/config/verticals';
 import { Alert, ButtonLink, Card } from '@/components/ui';
 import { Screen } from '@/components/app';
+import { isSetupMode } from '@/lib/setup-mode';
 
 export const metadata = { title: 'Confirm your appointment' };
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,14 @@ export default async function ConfirmPage({
   if (!isSupabaseConfigured()) {
     return (
       <Shell>
-        <Alert tone="warning">Demo mode — nothing to confirm.</Alert>
+        {isSetupMode() ? (
+          <Alert tone="warning">Demo mode — nothing to confirm.</Alert>
+        ) : (
+          <Alert tone="neutral" title="This link has expired">
+            Confirmation links work for a few days. Your appointment is still
+            booked — open the app to see it.
+          </Alert>
+        )}
       </Shell>
     );
   }

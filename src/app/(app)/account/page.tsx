@@ -32,6 +32,7 @@ import {
   Screen, NotificationSetting, ListGroup, ListRow, ListLink, LoyaltyCard,
 } from '@/components/app';
 import { vapidPublicKey } from '@/lib/messaging/push';
+import { isSetupMode } from '@/lib/setup-mode';
 
 export const metadata = { title: `My ${vertical.visitNounPlural}` };
 export const dynamic = 'force-dynamic';
@@ -169,7 +170,7 @@ function AccountView({
       title="Account"
       subtitle={`Hi ${account.firstName} — everything about your ${vertical.visitNounPlural} in one place.`}
     >
-      {demo && (
+      {demo && isSetupMode() && (
         <div className="px-4 pb-1 pt-1">
           <Alert tone="warning" title="Sample data">
             This is what a returning client sees. Connect Supabase and it fills

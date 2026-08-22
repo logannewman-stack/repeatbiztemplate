@@ -11,6 +11,7 @@ import {
 import { MembershipManager } from '@/components/booking/MembershipManager';
 import { formatMoney } from '@/lib/utils';
 import { Screen } from '@/components/app';
+import { isSetupMode } from '@/lib/setup-mode';
 
 export const metadata = { title: 'My membership' };
 export const dynamic = 'force-dynamic';
@@ -22,10 +23,17 @@ export default async function MembershipPage() {
     return (
       <>
         <Screen title={'Membership'} back={{ href: '/account' }}><div className="px-4">
-          <Alert tone="warning" title="Demo mode">
-            Membership management needs a database. Connect Supabase — see{' '}
-            <code>SETUP.md</code>.
-          </Alert>
+          {isSetupMode() ? (
+            <Alert tone="warning" title="Demo mode">
+              Membership management needs a database. Connect Supabase — see{' '}
+              <code>SETUP.md</code>.
+            </Alert>
+          ) : (
+            <Alert tone="neutral" title="Sign in to manage your membership">
+              Billing, credits and pausing all live in your account. We&apos;ll
+              email you a link — no password.
+            </Alert>
+          )}
         </div></Screen>
       </>
     );
