@@ -49,3 +49,17 @@ export function isSetupMode(env: Env = process.env): boolean {
 export function isPresentationMode(env: Env = process.env): boolean {
   return !isSetupMode(env);
 }
+
+/**
+ * A demo build being shown to a prospect: no database, and setup hints off.
+ *
+ * This is the state where the app has to read as a finished product rather
+ * than a template being configured. It is deliberately narrower than "demo
+ * mode" — a developer running `npm run dev` is also in demo mode, and they
+ * want every hint they can get.
+ */
+export function isSalesDemo(
+  supabaseConfigured: boolean, env: Env = process.env
+): boolean {
+  return !supabaseConfigured && !isSetupMode(env);
+}

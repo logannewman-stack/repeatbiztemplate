@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { isSetupMode, isPresentationMode } from '../setup-mode';
+import { isSetupMode, isPresentationMode, isSalesDemo } from '../setup-mode';
 
 describe('isSetupMode', () => {
   it('is on in development, so a fresh clone says it is unconfigured', () => {
@@ -52,5 +52,28 @@ describe('isSetupMode', () => {
     ]) {
       expect(isSetupMode(env)).toBe(!isPresentationMode(env));
     }
+  });
+});
+
+describe('isSalesDemo', () => {
+  const dev = { NODE_ENV: 'development' };
+  const prod = { NODE_ENV: 'production' };
+
+  it('is the state a prospect is shown: no database, hints off', () => {
+    expect(isSalesDemo(false, prod)).toBe(true);
+  });
+
+  it('is not a developer running the thing locally', () => {
+    // They are also in demo mode, and they want every hint going.
+    expect(isSalesDemo(false, dev)).toBe(false);
+  });
+
+  it('is not a real client deployment', () => {
+    expect(isSalesDemo(true, prod)).toBe(false);
+    expect(isSalesDemo(true, dev)).toBe(false);
+  });
+
+  it('turns off when hints are forced on for a build being configured', () => {
+    expect(isSalesDemo(false, { ...prod, NEXT_PUBLIC_SETUP_HINTS: '1' })).toBe(false);
   });
 });

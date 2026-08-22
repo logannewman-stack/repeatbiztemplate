@@ -22,7 +22,9 @@
     "setup": "node scripts/preflight.mjs",
     "preflight": "node scripts/preflight.mjs",
     "icons": "node scripts/gen-icons.mjs",
-    "vapid": "node scripts/gen-vapid.mjs"
+    "vapid": "node scripts/gen-vapid.mjs",
+    "shared:check": "node scripts/shared.mjs check",
+    "shared:pull": "node scripts/shared.mjs pull"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

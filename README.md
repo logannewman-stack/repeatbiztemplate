@@ -402,3 +402,33 @@ too:
 
 Unlicensed template for your own client work. Add whatever license you want
 before distributing it.
+
+---
+
+## Keeping the two repos in sync
+
+A large slice of `src/` is identical in both repos — the UI components, the
+config, the types, the booking engine, the Supabase clients. They are copied
+rather than extracted into a package: every client gets their own fork of both
+repos, and a shared package would be a third thing to version and publish for a
+two-app product.
+
+Copying is only safe if drift is visible, so it is checked:
+
+```bash
+npm run shared:check    # lists anything that differs; exits 1 if it does
+npm run shared:pull     # takes the canonical version (admin repo only)
+```
+
+`repeatbiztemplate` is canonical — it is where the booking engine, the
+retention rules and the message templates live, so a change to any of them
+lands there first. Check both repos out side by side and the scripts find each
+other; otherwise pass `--from <path>`.
+
+`scripts/shared-files.mjs` lists what is shared, and — the important part —
+what is **deliberately different**, with the reason. `src/lib/supabase/middleware.ts`
+is the only entry today: the two apps have different auth models. Anything that
+differs and is not on that list is drift, and drift in a copied foundation is
+how two codebases quietly stop being the same product.
+
+Run `shared:check` before you cut a client branch.

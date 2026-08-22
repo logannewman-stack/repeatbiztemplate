@@ -139,3 +139,20 @@ export function deepMerge<T>(base: T, override: unknown): T {
   }
   return out as T;
 }
+
+/**
+ * "a" or "an", for a noun that comes from config.
+ *
+ * Every vertical names a visit differently — appointment, session, treatment,
+ * visit — and a hard-coded "a" reads as "a appointment" on the two of them
+ * that start with a vowel. Not clever about it: this is a UI article for a
+ * short configured noun, not a general-purpose linguist.
+ */
+export function article(noun: string): string {
+  return /^[aeiou]/i.test(noun.trim()) ? 'an' : 'a';
+}
+
+/** "an appointment", "a visit". */
+export function withArticle(noun: string): string {
+  return `${article(noun)} ${noun}`;
+}
