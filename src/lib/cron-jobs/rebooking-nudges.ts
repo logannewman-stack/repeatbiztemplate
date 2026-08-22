@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { loadBusiness, loadAvailability } from '@/lib/booking/queries';
 import { resolveRules } from '@/lib/rules';
+import { inFirstVisitWindow } from '@/lib/retention/first-visit';
 import { dispatch } from '@/lib/retention/dispatch';
 import { pickSuggestedSlot } from '@/lib/booking/availability';
 import { summarize, type CronSummary } from '@/lib/cron';
@@ -28,6 +29,7 @@ export async function run(): Promise<CronSummary> {
   const supabase = createAdminClient();
   const results: Array<{ status: string }> = [];
   let slotsSuggested = 0;
+  let heldForSequence = 0;
 
   for (const dayOffset of rules.rebooking.nudgeDayOffsets) {
     // Clients whose expected return date was exactly `dayOffset` days ago.
@@ -48,6 +50,11 @@ export async function run(): Promise<CronSummary> {
       : 'rebook_overdue_14';
 
     for (const client of due ?? []) {
+      if (ownedByFirstVisitSequence(rules, client)) {
+        heldForSequence++;
+        continue;
+      }
+
       if (!client.client_id) continue;
 
       // Find the one slot worth putting in the message.
@@ -105,5 +112,28 @@ export async function run(): Promise<CronSummary> {
     }
   }
 
-  return summarize('rebooking-nudges', startedAt, results, { slotsSuggested });
+  return summarize('rebooking-nudges', startedAt, results, {
+    slotsSuggested,
+    heldForSequence,
+  });
+}
+
+/**
+ * A brand-new client belongs to the first-visit sequence, which is sending
+ * them four messages on its own schedule. Chasing them from here as well is
+ * how a mailbox starts reading like a machine.
+ *
+ * `visit_count === 1` means their last visit is also their first, which is why
+ * the view does not need to carry first_visit_at separately.
+ */
+function ownedByFirstVisitSequence(
+  rules: ReturnType<typeof resolveRules>,
+  row: { visit_count: number | null; last_visit_at: string | null }
+): boolean {
+  return inFirstVisitWindow(
+    rules.firstVisit,
+    row.last_visit_at ? new Date(row.last_visit_at) : null,
+    row.visit_count ?? 0,
+    new Date()
+  );
 }

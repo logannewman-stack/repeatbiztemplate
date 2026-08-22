@@ -237,6 +237,35 @@ export interface ReferralRules {
   maxRewardsPerYear: number;
 }
 
+export interface FirstVisitRules {
+  enabled: boolean;
+  /**
+   * The stages, in order. Each fires once, `afterHours` after the first visit
+   * completed, and dedupes on its own key — so the job is safe to re-run and
+   * safe to run late.
+   *
+   * `relativeToInterval` shifts a stage to sit relative to the service's own
+   * rebook interval instead of the visit: -168 means "a week before they are
+   * due back", which is where the offer belongs whether that is three weeks
+   * out or twelve.
+   */
+  stages: Array<{
+    key: string;
+    /** Hours after the first visit. Ignored when relativeToInterval is set. */
+    afterHours?: number;
+    /** Hours either side of the due date. Negative is before. */
+    relativeToInterval?: number;
+    /** What this message is for, in the campaign list and the send log. */
+    label: string;
+  }>;
+  /**
+   * Days after the first visit during which the generic rebooking nudge and
+   * the winback both stand down. Without this a new client gets the sequence
+   * and the ordinary campaigns at once, and the mailbox reads as a machine.
+   */
+  exclusiveForDays: number;
+}
+
 export interface ReviewRules {
   enabled: boolean;
   /** Hours after a completed visit to request a review. */
@@ -289,6 +318,7 @@ export interface AllRules {
   loyalty: LoyaltyRules;
   referrals: ReferralRules;
   reviews: ReviewRules;
+  firstVisit: FirstVisitRules;
 }
 
 export const rules: AllRules = {
@@ -433,6 +463,29 @@ export const rules: AllRules = {
     refereeRewardCents: 2500,
     minVisitsToRefer: 1,
     maxRewardsPerYear: 10,
+  },
+
+  /**
+   * The first-visit sequence.
+   *
+   * Whether a new client returns a second time is where retention is actually
+   * decided: first-visit clients come back at roughly half the rate of anyone
+   * who has been twice. One follow-up email does not move that. Four messages,
+   * each doing a different job, is what the spread is worth spending.
+   *
+   * The check-in on day three is the one people skip and the one that matters
+   * most — most first-visit churn is an unvoiced small dissatisfaction, and a
+   * client who tells you about it is a client you can still keep.
+   */
+  firstVisit: {
+    enabled: true,
+    stages: [
+      { key: 'thanks',   afterHours: 2,    label: 'Thank you and aftercare' },
+      { key: 'checkin',  afterHours: 72,   label: 'How is it settling?' },
+      { key: 'rebook',   relativeToInterval: -168, label: 'Book your next one' },
+      { key: 'lastcall', relativeToInterval: 240,  label: 'One more nudge' },
+    ],
+    exclusiveForDays: 120,
   },
 
   reviews: {

@@ -9,9 +9,9 @@ import { isSupabaseConfigured } from '@/lib/demo';
  * CRON DISPATCHER
  * ============================================================================
  * The single entry point `vercel.json` schedules. It runs whichever jobs are
- * due, which is what lets one platform trigger drive seven automations on any
+ * due, which is what lets one platform trigger drive eight automations on any
  * Vercel plan — Hobby allows two cron jobs at daily granularity, and declaring
- * seven sub-daily ones fails the deployment outright.
+ * four sub-daily ones fails the deployment outright.
  *
  * Due-ness comes from `cron_runs.last_run_at` versus each job's minimum
  * interval, so firing this hourly on Pro and daily on Hobby both do the right

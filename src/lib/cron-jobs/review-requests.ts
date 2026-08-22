@@ -5,11 +5,12 @@ import { dispatch } from '@/lib/retention/dispatch';
 import { summarize, type CronSummary } from '@/lib/cron';
 
 /**
- * Review requests and post-visit follow-ups. Runs daily.
+ * Review requests and no-show follow-ups. Runs daily.
  *
- * Also handles the first-visit follow-up, which is the single most valuable
- * message in the system: whether a new client comes back a second time is
- * where retention is actually decided.
+ * First visits are skipped here on purpose: they belong to the first-visit
+ * sequence in cron-jobs/first-visit.ts. Asking someone for a review before
+ * they have decided whether they are coming back is the wrong question at the
+ * wrong time, and it spends the one message they will actually read.
  */
 export async function run(): Promise<CronSummary> {
   const startedAt = Date.now();
@@ -35,27 +36,18 @@ export async function run(): Promise<CronSummary> {
     .lt('completed_at', until.toISOString());
 
   for (const appointment of completed ?? []) {
-    // A client's first completed visit gets the follow-up instead of a review
-    // ask — the priority is getting them back, not getting a star rating.
+    // A first visit belongs to the first-visit sequence, which runs on its own
+    // schedule and sends four messages rather than one. Asking a brand-new
+    // client for a review before they have decided whether they are coming
+    // back is the wrong question at the wrong time.
     const { count } = await supabase
       .from('appointments')
       .select('id', { count: 'exact', head: true })
       .eq('client_id', appointment.client_id)
       .eq('status', 'completed');
 
-    const isFirstVisit = (count ?? 0) <= 1;
-
-    if (isFirstVisit) {
+    if ((count ?? 0) <= 1) {
       firstVisits++;
-      results.push(
-        await dispatch({
-          businessId: business.id,
-          campaignKey: 'first_visit_followup',
-          clientId: appointment.client_id,
-          occurrence: appointment.id,
-          appointmentId: appointment.id,
-        })
-      );
       continue;
     }
 
@@ -95,5 +87,7 @@ export async function run(): Promise<CronSummary> {
     );
   }
 
-  return summarize('review-requests', startedAt, results, { firstVisits });
+  return summarize('review-requests', startedAt, results, {
+    skippedFirstVisits: firstVisits,
+  });
 }

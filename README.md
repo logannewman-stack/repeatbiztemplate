@@ -66,6 +66,15 @@ paid shows up more reliably. Ships with plans, included visit credits with
 rollover, prepaid packages, gift cards, dunning, and a cancellation save flow
 that leads with pause rather than goodbye.
 
+**1b. The first visit.** Whether a new client comes back a second time is
+where retention is actually decided — first-visit clients return at roughly
+half the rate of anyone who has already been twice, and that gap is the largest
+single number in the research behind this. Ships with a four-stage sequence:
+thank-you and aftercare at two hours, a check-in on day three, the rebooking
+offer a week before they are due back, and one last nudge ten days after. While
+it runs, the ordinary rebooking nudge and the winback stand down, so a new
+client never gets the sequence and the generic campaigns at once.
+
 **2. Cancellations and no-shows.** Every cancelled slot is pure loss: the rent,
 the staff, and the hour are already spent. Ships with risk-scored deposits, a
 tiered cancellation policy, reschedule-first flows, confirmation asks, and a

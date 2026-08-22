@@ -269,10 +269,29 @@ insert into message_templates (business_id, key, name, channel, subject, body, v
    'We missed you today, {{client.first_name}}. Things come up — want to grab another time? {{link.rebook}}',
    '{client.first_name,link.rebook}'),
 
-  ('00000000-0000-0000-0000-000000000001', 'first_visit_followup', 'Thanks for your first visit', 'email',
+  -- The first-visit sequence. Four messages, each doing a different job.
+  -- Whether a new client returns a second time is where retention is decided:
+  -- first-visit clients come back at roughly half the rate of anyone who has
+  -- already been twice, and one follow-up email does not move that.
+  ('00000000-0000-0000-0000-000000000001', 'first_visit_thanks', 'First visit — thank you', 'email',
    'Thanks for coming in, {{client.first_name}}',
-   E'Hi {{client.first_name}},\n\nThanks for trusting us with your first visit. Most clients come back in about {{service.rebook_interval}} days — want to get that on the calendar now while the time you want is still open?\n\n{{link.rebook}}\n\n{{business.name}}',
+   E'Hi {{client.first_name}},\n\nThank you for trusting us with your first visit — it was a pleasure.\n\nA few things that will help it last:\n\n  • Give it 24 hours before anything heavy\n  • Ask us before you change products at home\n  • Anything at all feels off, reply to this email and we will sort it\n\nSee you next time,\n{{business.name}}',
+   '{client.first_name,business.name}'),
+
+  -- Day three, and the one people skip. Most first-visit churn is an unvoiced
+  -- small dissatisfaction; a client who tells you is a client you can keep.
+  ('00000000-0000-0000-0000-000000000001', 'first_visit_checkin', 'First visit — check in', 'sms', null,
+   E'Hi {{client.first_name}}, {{staff.first_name}} here from {{business.name}}. Just checking how everything settled after your visit — happy with it? If anything is not quite right, tell me and we will fix it.',
+   '{client.first_name,staff.first_name,business.name}'),
+
+  ('00000000-0000-0000-0000-000000000001', 'first_visit_rebook', 'First visit — book the next one', 'email',
+   '{{client.first_name}}, ready for your next visit?',
+   E'Hi {{client.first_name}},\n\nMost people are ready again around now — about {{service.rebook_interval}} days after their last visit.\n\nThe times that go first are evenings and Saturdays, so if one of those suits you it is worth grabbing now:\n\n{{link.rebook}}\n\n{{business.name}}',
    '{client.first_name,service.rebook_interval,link.rebook,business.name}'),
+
+  ('00000000-0000-0000-0000-000000000001', 'first_visit_lastcall', 'First visit — one more nudge', 'sms', null,
+   E'{{client.first_name}} — still keeping a spot for you whenever you are ready. Book any time: {{link.rebook}}',
+   '{client.first_name,link.rebook}'),
 
   ('00000000-0000-0000-0000-000000000001', 'membership_pitch', 'You''d save with a membership', 'email',
    '{{client.first_name}}, you''d have saved {{membership.savings}} last quarter',
@@ -302,10 +321,28 @@ insert into campaigns (business_id, key, name, description, trigger_type, config
    'Day-of nudge with the address.', 'appointment_reminder', '{"hoursBefore": 3}'::jsonb,
    'sms', null, 'reminder_3h', 0, false, true),
 
-  ('00000000-0000-0000-0000-000000000001', 'first_visit_followup', 'First-visit follow-up',
-   'The highest-leverage message in the system. Second visits are where retention is won or lost.',
-   'first_visit_followup', '{"delayHours": 20}'::jsonb,
-   'email', 'sms', 'first_visit_followup', 0, true, true),
+  -- skip_if_future_booking is false on the first two: a thank-you and a check-in
+  -- are about the visit they just had, not the next one, so someone who booked
+  -- again on the way out still deserves both.
+  ('00000000-0000-0000-0000-000000000001', 'first_visit_thanks', 'First visit — thank you',
+   'Two hours after their first visit, while the result is fresh and they are pleased.',
+   'first_visit_followup', '{"stage": "thanks", "afterHours": 2}'::jsonb,
+   'email', null, 'first_visit_thanks', 0, false, true),
+
+  ('00000000-0000-0000-0000-000000000001', 'first_visit_checkin', 'First visit — check in',
+   'Day three. Catches the small dissatisfaction nobody would have mentioned, which is where most first-visit churn comes from.',
+   'first_visit_followup', '{"stage": "checkin", "afterHours": 72}'::jsonb,
+   'sms', 'email', 'first_visit_checkin', 0, false, true),
+
+  ('00000000-0000-0000-0000-000000000001', 'first_visit_rebook', 'First visit — book the next one',
+   'A week before they are due back, timed to the service''s own interval rather than a fixed number of days after the visit.',
+   'first_visit_followup', '{"stage": "rebook", "relativeToInterval": -168}'::jsonb,
+   'email', 'sms', 'first_visit_rebook', 0, true, true),
+
+  ('00000000-0000-0000-0000-000000000001', 'first_visit_lastcall', 'First visit — one more nudge',
+   'Ten days past due. The last message before they become an ordinary winback.',
+   'first_visit_followup', '{"stage": "lastcall", "relativeToInterval": 240}'::jsonb,
+   'sms', 'email', 'first_visit_lastcall', 0, true, true),
 
   ('00000000-0000-0000-0000-000000000001', 'rebook_due', 'Rebooking nudge — due',
    'Fires the day the client hits their personal rebooking interval.',

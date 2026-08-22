@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { loadBusiness } from '@/lib/booking/queries';
 import { resolveRules } from '@/lib/rules';
+import { inFirstVisitWindow } from '@/lib/retention/first-visit';
 import { dispatch } from '@/lib/retention/dispatch';
 import { selectWinbackOffer } from '@/lib/retention/rebooking';
 import { summarize, type CronSummary } from '@/lib/cron';
@@ -32,7 +33,14 @@ export async function run(): Promise<CronSummary> {
     .order('priority_score', { ascending: false })
     .limit(300);
 
+  let heldForSequence = 0;
+
   for (const client of lapsed ?? []) {
+    if (ownedByFirstVisitSequence(rules, client)) {
+      heldForSequence++;
+      continue;
+    }
+
     if (!client.client_id || client.days_since_visit == null) continue;
 
     const daysLapsed = client.days_overdue ?? 0;
@@ -69,5 +77,25 @@ export async function run(): Promise<CronSummary> {
     results.push(result);
   }
 
-  return summarize('winback', startedAt, results, { offersIssued });
+  return summarize('winback', startedAt, results, { offersIssued, heldForSequence });
+}
+
+/**
+ * A brand-new client belongs to the first-visit sequence, which is sending
+ * them four messages on its own schedule. Chasing them from here as well is
+ * how a mailbox starts reading like a machine.
+ *
+ * `visit_count === 1` means their last visit is also their first, which is why
+ * the view does not need to carry first_visit_at separately.
+ */
+function ownedByFirstVisitSequence(
+  rules: ReturnType<typeof resolveRules>,
+  row: { visit_count: number | null; last_visit_at: string | null }
+): boolean {
+  return inFirstVisitWindow(
+    rules.firstVisit,
+    row.last_visit_at ? new Date(row.last_visit_at) : null,
+    row.visit_count ?? 0,
+    new Date()
+  );
 }

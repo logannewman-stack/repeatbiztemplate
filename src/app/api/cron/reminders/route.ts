@@ -9,7 +9,7 @@ import { run } from '@/lib/cron-jobs/reminders';
  * Thin wrapper so this job stays individually reachable — for a manual run, an
  * external scheduler, or a Vercel plan that can afford separate cron entries.
  * On the default deployment `/api/cron/run` drives it instead, because Hobby
- * allows only two cron jobs and this platform has seven.
+ * allows only two cron jobs and this platform has eight.
  */
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';

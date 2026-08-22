@@ -3,7 +3,7 @@
  * CRON JOB REGISTRY
  * ============================================================================
  * Vercel's Hobby plan allows two cron jobs, daily only. This platform has
- * seven, three of them sub-daily, so declaring them individually in
+ * eight, four of them sub-daily, so declaring them individually in
  * `vercel.json` makes the whole deployment fail before it starts.
  *
  * So they are declared here instead and driven by one dispatcher at
@@ -52,6 +52,17 @@ export const CRON_JOBS: CronJob[] = [
     minIntervalMinutes: 60 * 20,
     latencyCost: 'Clients past their usual interval are not chased on time.',
     run: async () => (await import('./rebooking-nudges')).run(),
+  },
+  {
+    key: 'first-visit',
+    label: 'First-visit sequence',
+    // Every three hours, not daily: the first stage is two hours after the
+    // visit, while the result is fresh. A daily job would send it the next
+    // morning, which is a different message.
+    minIntervalMinutes: 60 * 3,
+    latencyCost:
+      'The highest-leverage sequence in the platform drifts. First-visit clients return at about half the rate of repeat ones, and these four messages are what closes that gap.',
+    run: async () => (await import('./first-visit')).run(),
   },
   {
     key: 'review-requests',

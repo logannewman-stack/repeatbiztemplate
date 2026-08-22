@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { authorizeCron } from '@/lib/cron';
 import { isSupabaseConfigured } from '@/lib/demo';
-import { run } from '@/lib/cron-jobs/review-requests';
+import { run } from '@/lib/cron-jobs/first-visit';
 
 /**
- * Review asks and first-visit follow-ups.
+ * The first-visit sequence — the four messages that decide whether a new
+ * client comes back a second time.
  *
  * Thin wrapper so this job stays individually reachable — for a manual run, an
  * external scheduler, or a Vercel plan that can afford separate cron entries.
